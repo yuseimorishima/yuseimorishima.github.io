@@ -323,6 +323,13 @@
                 <button class="tab-button" onclick="switchTab('compare')">比較 (<span id="compareCount">0</span>)</button>
             </div>
             
+            <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f9f9f9;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="searchInput" placeholder="市区町村名や地名を入力..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+                    <button onclick="searchLocation()" style="padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">検索</button>
+                </div>
+            </div>
+            
             <div id="analyze-tab" class="tab-content active">
                 <div class="control-group">
                     <label>解析季節</label>
@@ -451,6 +458,8 @@
 
         async function analyze(lat, lon, customName) {
             showLoading();
+            const startTime = Date.now();
+            const MIN_LOADING_TIME = 3000; // 3秒以上表示
             try {
                 const response = await fetch(
                     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=12`
@@ -493,9 +502,21 @@
 
                 addMarkerToMap(lat, lon, res, fullName);
                 displayResult();
+                
+                // 最小3秒の待機時間を確保
+                const elapsedTime = Date.now() - startTime;
+                if (elapsedTime < MIN_LOADING_TIME) {
+                    await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsedTime));
+                }
                 hideLoading();
             } catch (error) {
                 console.error('Analysis failed:', error);
+                
+                // エラー時も最小3秒表示
+                const elapsedTime = Date.now() - startTime;
+                if (elapsedTime < MIN_LOADING_TIME) {
+                    await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsedTime));
+                }
                 hideLoading();
             }
         }
@@ -705,6 +726,109 @@
             `;
             document.getElementById('compareResults').innerHTML = html;
         }
+
+        function searchLocation() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                alert('市区町村名または地名を入力してください');
+                return;
+            }
+            
+            const startTime = Date.now();
+            const MIN_LOADING_TIME = 3000;
+            
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=jp&limit=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        alert('見つかりませんでした。別の地名を試してください。');
+                        return;
+                    }
+                    
+                    const result = data[0];
+                    const lat = parseFloat(result.lat);
+                    const lon = parseFloat(result.lon);
+                    const name = result.display_name.split(',')[0];
+                    
+                    map.setView([lat, lon], 10);
+                    analyzeWithMinTime(lat, lon, name, startTime);
+                })
+                .catch(error => {
+                    console.error('Search failed:', error);
+                    alert('検索に失敗しました。');
+                });
+        }
+        
+        async function analyzeWithMinTime(lat, lon, customName, searchStartTime) {
+            showLoading();
+            const analyzeStartTime = Date.now();
+            const MIN_LOADING_TIME = 3000;
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=12`
+                );
+                const data = await response.json();
+                const addr = data.address;
+                const city = addr.city || addr.town || addr.village || addr.suburb || "地域不明";
+                const pref = addr.province || addr.state || "";
+                const fullName = customName || (pref + " " + city);
+
+                let p = { solar: 25, wind: 20, geo: 10, hydro: 20, bio: 25 };
+
+                if (pref.includes("大分") || pref.includes("熊本") || pref.includes("鹿児島") || pref.includes("福島") || pref.includes("秋田")) {
+                    p.geo += 60;
+                }
+                if (pref.includes("北海道") || pref.includes("青森") || pref.includes("秋田") || pref.includes("山形") || city.includes("海") || city.includes("港") || city.includes("岬")) {
+                    p.wind += 50;
+                }
+                if (pref.includes("長野") || pref.includes("岐阜") || pref.includes("富山") || pref.includes("石川") || pref.includes("福井") || city.includes("山") || city.includes("川")) {
+                    p.hydro += 45;
+                }
+                if (pref.includes("高知") || pref.includes("宮崎") || pref.includes("岩手") || pref.includes("奈良")) {
+                    p.bio += 40;
+                }
+                if (pref.includes("山梨") || pref.includes("静岡") || pref.includes("群馬") || pref.includes("岡山") || city.includes("区") || city.includes("市")) {
+                    p.solar += 35;
+                }
+
+                let bestType = "SOLAR_AGRI";
+                if (p.geo > 65) bestType = "GEO_FLASH";
+                else if (p.hydro > 60) bestType = "HYDRO_SMALL";
+                else if (p.wind > 65) bestType = (city.includes("海") || city.includes("港")) ? "WIND_OFFSHORE" : "WIND_ONSHORE";
+                else if (p.bio > 55) bestType = "BIO_WOOD";
+                else if (p.solar > 50) bestType = city.includes("区") ? "SOLAR_ROOF" : "SOLAR_AGRI";
+                else if (pref.includes("北海道") && currentSeason === 'winter') bestType = "SNOW";
+                else bestType = "BIO_GAS";
+
+                const res = MASTER_DATA[bestType];
+                currentData = { lat, lon, name: fullName, p, res, bestType };
+
+                addMarkerToMap(lat, lon, res, fullName);
+                displayResult();
+                
+                const elapsedTime = Date.now() - analyzeStartTime;
+                if (elapsedTime < MIN_LOADING_TIME) {
+                    await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsedTime));
+                }
+                hideLoading();
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                
+                const elapsedTime = Date.now() - analyzeStartTime;
+                if (elapsedTime < MIN_LOADING_TIME) {
+                    await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsedTime));
+                }
+                hideLoading();
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchLocation();
+                }
+            });
+        });
 
         window.addEventListener('load', initMap);
     </script>
