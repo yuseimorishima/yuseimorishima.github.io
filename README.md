@@ -1,1 +1,714 @@
 # yuseimorishima.github.io
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>エネルギー解析ツール - 時間帯対応版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .map-section {
+            flex: 1;
+            position: relative;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .sidebar {
+            width: 450px;
+            background: white;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+            background: #f9f9f9;
+        }
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .season-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        .season-btn {
+            padding: 8px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .season-btn.active {
+            background: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+        .season-btn:hover {
+            border-color: #0066cc;
+        }
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .time-display .time-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0066cc;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0066cc;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .result-card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .energy-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .result-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .result-location {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .result-description {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .chart-container {
+            position: relative;
+            height: 280px;
+            margin-bottom: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .time-based-chart {
+            position: relative;
+            height: 250px;
+            margin-bottom: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-width: 400px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0066cc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-message {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+        .button {
+            width: 100%;
+            padding: 10px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        .button:hover {
+            background: #0052a3;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        .empty-state-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .compare-list {
+            margin-bottom: 15px;
+        }
+        .compare-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .compare-item-remove {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .compare-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border-left: 4px solid #0066cc;
+        }
+        .result-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .result-item strong {
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="map-section">
+            <div id="map"></div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('analyze')">地点解析</button>
+                <button class="tab-button" onclick="switchTab('compare')">比較 (<span id="compareCount">0</span>)</button>
+            </div>
+            
+            <div id="analyze-tab" class="tab-content active">
+                <div class="control-group">
+                    <label>解析季節</label>
+                    <div class="season-buttons">
+                        <button class="season-btn active" onclick="setSeason('spring')">春</button>
+                        <button class="season-btn" onclick="setSeason('summer')">夏</button>
+                        <button class="season-btn" onclick="setSeason('autumn')">秋</button>
+                        <button class="season-btn" onclick="setSeason('winter')">冬</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="time-display">
+                        <label>解析時間帯</label>
+                        <span class="time-value"><span id="timeValue">12</span>:00</span>
+                    </div>
+                    <input type="range" id="timeSlider" min="0" max="23" value="12" onchange="updateTime(this.value)">
+                </div>
+                
+                <div id="result-container">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🗺️</div>
+                        <p>地図をクリックして解析してください</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="compare-tab" class="tab-content">
+                <div class="compare-list" id="compareList"></div>
+                <button class="button" onclick="executeComparison()" id="compareButton" disabled>総合比較を実行</button>
+                <div id="compareResults"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-box">
+            <div class="spinner"></div>
+            <div class="loading-message" id="loadingMessage">解析中...</div>
+        </div>
+    </div>
+
+    <script>
+        const LOADING_MESSAGES = [
+            "エネルギーの妖精たちが会議を行っています...",
+            "膨大なデータの中で、担当AIが迷子になっています。今すぐ救出（解析）します！",
+            "サーバーが知恵熱を出さない程度に全力疾走中です。",
+            "人工衛星から地表の熱源を凝視しています。まばたき厳禁...",
+            "地球の鼓動をサンプリング中。少々お待ちを。",
+            "1と0の海から、あなたに最適なエネルギーの真珠をすくい上げています。",
+            "コーヒーを一口飲む時間はあります。でも二口目は間に合わないかもしれません。",
+            "未来のエネルギーを計算中... 待っている間に、あなたの脳内エネルギーも充電しておいてください。",
+            "この間に、地球の裏側では太陽が沈み、風が吹き始めています。",
+            "AIがそろばんを弾きすぎて指を火傷しかけています...",
+            "0と1の波に揉まれて、担当者が少し船酔い気味です...",
+            "サーバーが知恵熱を出したので、冷えピタを貼りながら計算しています...",
+            "解析エンジンが『あと5秒だけ寝かせて』と言っていますが、叩き起こしました。",
+            "人工衛星を2、3台借りて、現地の雲の隙間を覗き込んでいます...",
+            "地球の裏側まで地熱を探しに行っています。すぐ戻ります。",
+            "徳川埋蔵金ではなく、再生可能エネルギーの金脈を探り当てようとしています...",
+            "半径500km以内の猫の毛の逆立ち具合から、静電気ポテンシャルを測定中...（嘘です）",
+            "大丈夫です、フリーズしていません。あなたが選んだ土地が魅力的すぎて見惚れているだけです。",
+            "コーヒーの準備はいいですか？豆を挽く時間はありますが、お湯が沸く前には終わります。",
+            "今この瞬間、あなたのクリックが日本のエネルギーの未来を変える（かもしれない）一歩になりました。",
+            "解析中... 待っている間に、背筋を伸ばして深呼吸してみましょう。それが人間にとっての再エネです。",
+            "巨大な書庫から、ホコリを被った最新統計を引っ張り出しています...",
+            "統計データたちが『俺をグラフにしてくれ！』と列を作って並んでいます...",
+            "0.0001%の誤差も許さない潔癖症なアルゴリズムが、最後のチェックをしています..."
+        ];
+
+        const MASTER_DATA = {
+            GEO_FLASH: { n: "地熱（大容量フラッシュ）", c: "#c0392b", t: "火山帯の強力な蒸気を活用する安定電源。24時間安定した出力が可能です。", stable: 5, cost: 3, env: 5, future: 4 },
+            GEO_BINARY: { n: "温泉共生型バイナリー地熱", c: "#e67e22", t: "温泉資源を保護しつつ発電。観光とエネルギー自給を両立させます。", stable: 5, cost: 2, env: 5, future: 4 },
+            WIND_OFFSHORE: { n: "浮体式洋上風力発電", c: "#2980b9", t: "海上の強力な風を効率よく電気に変えます。将来の主力電源として期待されます。", stable: 3, cost: 2, env: 4, future: 5 },
+            WIND_ONSHORE: { n: "陸上風力発電", c: "#3498db", t: "丘陵・平原地帯で展開。地域エネルギーの主軸を担うポテンシャルがあります。", stable: 3, cost: 4, env: 4, future: 3 },
+            SOLAR_ROOF: { n: "ペロブスカイト太陽光", c: "#f1c40f", t: "ビル壁面や窓を活用。都市部での発電ポテンシャルを最大化します。", stable: 2, cost: 3, env: 5, future: 5 },
+            SOLAR_AGRI: { n: "営農型太陽光", c: "#f39c12", t: "農地の上空を活用。農業と発電を両立する地域活性化モデルです。", stable: 2, cost: 4, env: 5, future: 4 },
+            HYDRO_SMALL: { n: "中小水力発電", c: "#16a085", t: "河川の自然な流れを活かし、24時間止まらない電力を供給します。", stable: 5, cost: 3, env: 5, future: 3 },
+            BIO_WOOD: { n: "森林木質バイオマス", c: "#27ae60", t: "間伐材の利活用により森を再生し、熱と電気を創出します。", stable: 5, cost: 3, env: 4, future: 3 },
+            BIO_GAS: { n: "廃棄物系バイオガス", c: "#8e44ad", t: "都市の生ゴミや汚泥を活用。資源循環型社会の要となる電源です。", stable: 5, cost: 3, env: 5, future: 3 },
+            SNOW: { n: "雪氷熱エネルギー利用", c: "#a2deff", t: "冬の雪を夏の冷房エネルギーに変える、雪国独自の知恵です。", stable: 4, cost: 3, env: 5, future: 2 },
+            HYDROGEN: { n: "グリーン水素貯蔵拠点", c: "#00cec9", t: "再エネ余剰分を水素として貯蔵。将来のエネルギーインフラの要です。", stable: 4, cost: 1, env: 5, future: 5 },
+            TIDAL: { n: "潮流・潮汐発電", c: "#0984e3", t: "強い潮流を利用。月の満ち欠けに基づいた確実な予測が可能です。", stable: 4, cost: 1, env: 4, future: 4 }
+        };
+
+        const SEASON_FACTORS = {
+            spring: { solar: 0.9, wind: 0.8, hydro: 1.0, bio: 1.0, geo: 1.0 },
+            summer: { solar: 1.0, wind: 0.4, hydro: 0.8, bio: 1.0, geo: 1.0 },
+            autumn: { solar: 0.7, wind: 0.7, hydro: 0.6, bio: 1.0, geo: 1.0 },
+            winter: { solar: 0.5, wind: 1.0, hydro: 0.4, bio: 1.0, geo: 1.0 }
+        };
+
+        let map;
+        let markers = [];
+        let currentSeason = 'spring';
+        let currentTime = 12;
+        let currentData = null;
+        let compareList = [];
+        let timeBasedChart = null;
+
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: true,
+                maxBounds: [[20, 120], [50, 155]],
+                minZoom: 5
+            }).setView([36.5, 138], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('click', (e) => {
+                analyze(e.latlng.lat, e.latlng.lng);
+            });
+        }
+
+        function showLoading() {
+            const msg = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+            document.getElementById('loadingMessage').textContent = msg;
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        async function analyze(lat, lon, customName) {
+            showLoading();
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=12`
+                );
+                const data = await response.json();
+                const addr = data.address;
+                const city = addr.city || addr.town || addr.village || addr.suburb || "地域不明";
+                const pref = addr.province || addr.state || "";
+                const fullName = customName || (pref + " " + city);
+
+                let p = { solar: 25, wind: 20, geo: 10, hydro: 20, bio: 25 };
+
+                if (pref.includes("大分") || pref.includes("熊本") || pref.includes("鹿児島") || pref.includes("福島") || pref.includes("秋田")) {
+                    p.geo += 60;
+                }
+                if (pref.includes("北海道") || pref.includes("青森") || pref.includes("秋田") || pref.includes("山形") || city.includes("海") || city.includes("港") || city.includes("岬")) {
+                    p.wind += 50;
+                }
+                if (pref.includes("長野") || pref.includes("岐阜") || pref.includes("富山") || pref.includes("石川") || pref.includes("福井") || city.includes("山") || city.includes("川")) {
+                    p.hydro += 45;
+                }
+                if (pref.includes("高知") || pref.includes("宮崎") || pref.includes("岩手") || pref.includes("奈良")) {
+                    p.bio += 40;
+                }
+                if (pref.includes("山梨") || pref.includes("静岡") || pref.includes("群馬") || pref.includes("岡山") || city.includes("区") || city.includes("市")) {
+                    p.solar += 35;
+                }
+
+                let bestType = "SOLAR_AGRI";
+                if (p.geo > 65) bestType = "GEO_FLASH";
+                else if (p.hydro > 60) bestType = "HYDRO_SMALL";
+                else if (p.wind > 65) bestType = (city.includes("海") || city.includes("港")) ? "WIND_OFFSHORE" : "WIND_ONSHORE";
+                else if (p.bio > 55) bestType = "BIO_WOOD";
+                else if (p.solar > 50) bestType = city.includes("区") ? "SOLAR_ROOF" : "SOLAR_AGRI";
+                else if (pref.includes("北海道") && currentSeason === 'winter') bestType = "SNOW";
+                else bestType = "BIO_GAS";
+
+                const res = MASTER_DATA[bestType];
+                currentData = { lat, lon, name: fullName, p, res, bestType };
+
+                addMarkerToMap(lat, lon, res, fullName);
+                displayResult();
+                hideLoading();
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                hideLoading();
+            }
+        }
+
+        function addMarkerToMap(lat, lon, res, name) {
+            const existing = markers.find(m => {
+                const latlng = m.getLatLng();
+                return Math.abs(latlng.lat - lat) < 0.001 && Math.abs(latlng.lng - lon) < 0.001;
+            });
+
+            if (existing) {
+                existing.setStyle({ color: res.c, fillColor: res.c });
+                existing.setPopupContent(`<strong>${name}</strong><br>最適: ${res.n}`);
+                return;
+            }
+
+            const marker = L.circleMarker([lat, lon], {
+                radius: 8,
+                fillColor: res.c,
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            marker.bindPopup(`<strong>${name}</strong><br>最適: ${res.n}`);
+            marker.on('click', () => {
+                analyze(lat, lon, name);
+            });
+            markers.push(marker);
+        }
+
+        function displayResult() {
+            if (!currentData) return;
+
+            const sf = SEASON_FACTORS[currentSeason];
+            const hourFactor = (currentTime >= 6 && currentTime <= 18) ? Math.sin((currentTime - 6) / 12 * Math.PI) : 0;
+
+            // 時間帯ごとの発電量を計算
+            const timeBasedGeneration = {
+                solar: currentData.p.solar * sf.solar * hourFactor,
+                wind: currentData.p.wind * sf.wind * 0.8,
+                geo: currentData.p.geo * sf.geo,
+                hydro: currentData.p.hydro * sf.hydro,
+                bio: currentData.p.bio * sf.bio
+            };
+
+            let html = `
+                <div class="result-card">
+                    <div class="energy-badge" style="background-color: ${currentData.res.c}">最適エネルギー</div>
+                    <div class="result-title">${currentData.res.n}</div>
+                    <div class="result-location">📍 ${currentData.name}</div>
+                    <div class="result-description">${currentData.res.t}</div>
+                    <button class="button" onclick="addToCompare()">比較リストに追加</button>
+                </div>
+
+                <div class="time-based-chart">
+                    <div class="chart-title">⏰ ${currentTime}:00 時点での発電量推定</div>
+                    <canvas id="timeBasedChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">基本ポテンシャル分析</div>
+                    <canvas id="potentialChart"></canvas>
+                </div>
+            `;
+
+            document.getElementById('result-container').innerHTML = html;
+
+            // 時間帯ごとの発電量チャート
+            const timeCtx = document.getElementById('timeBasedChart').getContext('2d');
+            new Chart(timeCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['太陽光', '風力', '地熱', '水力', 'バイオマス'],
+                    datasets: [{
+                        label: `${currentTime}:00 の発電量`,
+                        data: [
+                            timeBasedGeneration.solar,
+                            timeBasedGeneration.wind,
+                            timeBasedGeneration.geo,
+                            timeBasedGeneration.hydro,
+                            timeBasedGeneration.bio
+                        ],
+                        backgroundColor: ['#f1c40f', '#3498db', '#c0392b', '#16a085', '#27ae60'],
+                        borderColor: ['#f39c12', '#2980b9', '#a93226', '#117a65', '#1e8449'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    scales: { x: { min: 0, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // ポテンシャル分析チャート
+            const potentialCtx = document.getElementById('potentialChart').getContext('2d');
+            new Chart(potentialCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['太陽光', '風力', '地熱', '水力', 'バイオマス'],
+                    datasets: [{
+                        label: '基本ポテンシャル',
+                        data: [currentData.p.solar, currentData.p.wind, currentData.p.geo, currentData.p.hydro, currentData.p.bio],
+                        backgroundColor: 'rgba(101, 163, 13, 0.2)',
+                        borderColor: 'rgba(101, 163, 13, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    scales: { r: { min: 0, max: 100 } },
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function updateTime(value) {
+            currentTime = parseInt(value);
+            document.getElementById('timeValue').textContent = String(currentTime).padStart(2, '0');
+            if (currentData) {
+                displayResult();
+            }
+        }
+
+        function setSeason(season) {
+            currentSeason = season;
+            document.querySelectorAll('.season-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            if (currentData) {
+                displayResult();
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function addToCompare() {
+            if (!currentData) return;
+            if (compareList.length >= 5) {
+                alert("比較リストは最大5箇所までです。");
+                return;
+            }
+            if (compareList.find(item => item.name === currentData.name)) {
+                alert("既にリストに追加されています。");
+                return;
+            }
+            compareList.push(JSON.parse(JSON.stringify(currentData)));
+            updateCompareList();
+        }
+
+        function removeFromCompare(index) {
+            compareList.splice(index, 1);
+            updateCompareList();
+        }
+
+        function updateCompareList() {
+            document.getElementById('compareCount').textContent = compareList.length;
+            let html = '';
+            compareList.forEach((item, idx) => {
+                html += `
+                    <div class="compare-item">
+                        <span>${item.name}</span>
+                        <button class="compare-item-remove" onclick="removeFromCompare(${idx})">削除</button>
+                    </div>
+                `;
+            });
+            document.getElementById('compareList').innerHTML = html;
+            document.getElementById('compareButton').disabled = compareList.length < 2;
+        }
+
+        function executeComparison() {
+            if (compareList.length < 2) {
+                alert("2箇所以上を比較してください。");
+                return;
+            }
+
+            const comparisonData = compareList.map(item => ({
+                name: item.name,
+                stability: item.res.stable,
+                cost: item.res.cost,
+                env: item.res.env,
+                future: item.res.future,
+                total: item.res.stable + item.res.cost + item.res.env + item.res.future
+            }));
+
+            const bestByStability = comparisonData.reduce((a, b) => a.stability > b.stability ? a : b);
+            const bestByCost = comparisonData.reduce((a, b) => a.cost > b.cost ? a : b);
+            const bestByEnv = comparisonData.reduce((a, b) => a.env > b.env ? a : b);
+            const bestByFuture = comparisonData.reduce((a, b) => a.future > b.future ? a : b);
+            const bestOverall = comparisonData.reduce((a, b) => a.total > b.total ? a : b);
+
+            let html = `
+                <div class="compare-results">
+                    <h3 style="margin-bottom: 15px; color: #0066cc;">🏆 比較結果</h3>
+                    <div class="result-item"><strong>安定性最高:</strong> ${bestByStability.name}</div>
+                    <div class="result-item"><strong>コスト効率:</strong> ${bestByCost.name}</div>
+                    <div class="result-item"><strong>環境評価:</strong> ${bestByEnv.name}</div>
+                    <div class="result-item"><strong>将来性:</strong> ${bestByFuture.name}</div>
+                    <div class="result-item" style="background: #fff9e6; border-left: 3px solid #f1c40f;"><strong>総合評価:</strong> ${bestOverall.name}</div>
+                </div>
+            `;
+            document.getElementById('compareResults').innerHTML = html;
+        }
+
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>
+HTMLコード改善の提案と新しいコードへの変更 - Manus
