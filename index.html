@@ -328,6 +328,22 @@
         .heatmap-toggle-btn.active {
             background: #cc6600;
         }
+        .citation {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 10px;
+            color: #999;
+            text-align: right;
+            z-index: 100;
+        }
+        .citation a {
+            color: #999;
+            text-decoration: none;
+        }
+        .citation a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -390,6 +406,10 @@
             <div class="spinner"></div>
             <div class="loading-message" id="loadingMessage">解析中...</div>
         </div>
+    </div>
+
+    <div class="citation">
+        出典: <a href="https://energy-sustainability.jp/" target="_blank">energy-sustainability.jp</a>
     </div>
 
     <script>
