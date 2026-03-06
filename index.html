@@ -344,29 +344,32 @@
         .citation a:hover {
             text-decoration: underline;
         }
+        .leaflet-attribution {
+            display: none !important;
+        }
         .toast {
             position: fixed;
-            bottom: 30px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             background: #4CAF50;
             color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            padding: 20px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 999;
-            animation: slideIn 0.3s ease-out;
+            animation: slideInCenter 0.3s ease-out;
         }
-        @keyframes slideIn {
+        @keyframes slideInCenter {
             from {
                 opacity: 0;
-                transform: translateX(-50%) translateY(20px);
+                transform: translate(-50%, -50%) scale(0.8);
             }
             to {
                 opacity: 1;
-                transform: translateX(-50%) translateY(0);
+                transform: translate(-50%, -50%) scale(1);
             }
         }
     </style>
