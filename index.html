@@ -344,6 +344,31 @@
         .citation a:hover {
             text-decoration: underline;
         }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 999;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -783,18 +808,30 @@
             event.target.classList.add('active');
         }
 
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 1000);
+        }
+
         function addToCompare() {
             if (!currentData) return;
             if (compareList.length >= 5) {
-                alert("比較リストは最大5箇所までです。");
+                showToast('比較リストは最大5箇所までです');
                 return;
             }
             if (compareList.find(item => item.name === currentData.name)) {
-                alert("既にリストに追加されています。");
+                showToast('既にリストに追加されています');
                 return;
             }
             compareList.push(JSON.parse(JSON.stringify(currentData)));
             updateCompareList();
+            showToast('追加しました!');
         }
 
         function removeFromCompare(index) {
