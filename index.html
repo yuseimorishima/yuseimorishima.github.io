@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -496,8 +496,6 @@
         let currentData = null;
         let compareList = [];
         let timeBasedChart = null;
-        let heatmapLayer = null;
-        let heatmapVisible = true;
 
         function initMap() {
             map = L.map('map', {
@@ -515,85 +513,10 @@
                 analyze(e.latlng.lat, e.latlng.lng);
             });
             
-            // ヒートマップを初期表示
-            addEnergyPotentialHeatmap();
+
         }
 
-        function addEnergyPotentialHeatmap() {
-            const gridSize = 1.0;
-            const heatmapData = [];
-            
-            for (let lat = 24; lat < 46; lat += gridSize) {
-                for (let lon = 123; lon < 146; lon += gridSize) {
-                    const potential = calculateGridPotential(lat, lon);
-                    if (potential > 0) {
-                        heatmapData.push([lat, lon, potential * 100]);
-                    }
-                }
-            }
-            
-            console.log('Heatmap data points:', heatmapData.length);
-            
-            if (heatmapLayer) {
-                map.removeLayer(heatmapLayer);
-            }
-            
-            if (heatmapData.length > 0) {
-                heatmapLayer = L.heatLayer(heatmapData, {
-                    radius: 50,
-                    blur: 30,
-                    maxZoom: 18,
-                    minOpacity: 0.3,
-                    max: 100,
-                    gradient: {
-                        0.0: '#0000ff',
-                        0.25: '#00ff00',
-                        0.5: '#ffff00',
-                        0.75: '#ff8800',
-                        1.0: '#ff0000'
-                    }
-                }).addTo(map);
-                console.log('Heatmap layer added successfully');
-            } else {
-                console.warn('No heatmap data generated');
-            }
-        }
-        
-        function calculateGridPotential(lat, lon) {
-            let potential = 20;
-            
-            // 地熱ポテンシャル（火山帯）
-            if ((lat > 30 && lat < 35 && lon > 130 && lon < 133) || 
-                (lat > 37 && lat < 38.5 && lon > 140 && lon < 141.5)) {
-                potential += 60;
-            }
-            
-            // 風力ポテンシャル（北海道・東北沿岸）
-            if ((lat > 41 && lon > 139) || 
-                (lat > 39 && lat < 41 && lon > 140.5)) {
-                potential += 50;
-            }
-            
-            // 水力ポテンシャル（山岳地帯）
-            if ((lat > 36 && lat < 37.5 && lon > 137 && lon < 138.5) || 
-                (lat > 36.5 && lat < 37.5 && lon > 138 && lon < 140)) {
-                potential += 45;
-            }
-            
-            // 太陽光ポテンシャル（平坦な都市部）
-            if ((lat > 34 && lat < 35.5 && lon > 138.5 && lon < 140) || 
-                (lat > 35 && lat < 36 && lon > 139 && lon < 140.5)) {
-                potential += 40;
-            }
-            
-            // バイオマスポテンシャル（森林地帯）
-            if ((lat > 33 && lat < 34.5 && lon > 132 && lon < 134) || 
-                (lat > 31.5 && lat < 32.5 && lon > 131 && lon < 132)) {
-                potential += 35;
-            }
-            
-            return Math.min(potential, 100);
-        }
+
 
 
 
@@ -1079,4 +1002,4 @@
         });
     </script>
 </body>
-</html>
+</html>；
