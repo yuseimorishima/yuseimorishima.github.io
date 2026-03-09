@@ -549,22 +549,38 @@
         let timeBasedChart = null;
 
         function initMap() {
-            map = L.map('map', {
-                zoomControl: true,
-                maxBounds: [[20, 120], [50, 155]],
-                minZoom: 5
-            }).setView([36.5, 138], 5);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error('Map element not found');
+                return;
+            }
             
-            // マップクリックイベントを登録
-            map.on('click', function(e) {
-                analyze(e.latlng.lat, e.latlng.lng);
-            });
-            
+            try {
+                map = L.map('map', {
+                    zoomControl: true,
+                    maxBounds: [[20, 120], [50, 155]],
+                    minZoom: 5,
+                    preferCanvas: true
+                }).setView([36.5, 138], 5);
 
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+                
+                // マップクリックイベントを登録
+                map.on('click', function(e) {
+                    analyze(e.latlng.lat, e.latlng.lng);
+                });
+                
+                // 地図のリサイズを強制
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+                
+                console.log('Map initialized successfully');
+            } catch (error) {
+                console.error('Map initialization error:', error);
+            }
         }
 
 
