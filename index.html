@@ -22,6 +22,7 @@
         .container {
             display: flex;
             height: 100vh;
+            flex-direction: row;
         }
         .map-section {
             flex: 1;
@@ -370,6 +371,56 @@
             to {
                 opacity: 1;
                 transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 350px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+            .map-section {
+                width: 100%;
+                height: 50vh;
+                min-height: 300px;
+            }
+            .sidebar {
+                width: 100%;
+                height: 50vh;
+                border-left: none;
+                border-top: 1px solid #ddd;
+                box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            }
+            .season-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .map-section {
+                height: 40vh;
+                min-height: 250px;
+            }
+            .sidebar {
+                height: 60vh;
+            }
+            .tab-button {
+                padding: 8px;
+                font-size: 12px;
+            }
+            .tab-content {
+                padding: 12px;
+                font-size: 12px;
+            }
+            .control-group {
+                padding: 10px;
+                margin-bottom: 12px;
             }
         }
     </style>
@@ -1002,4 +1053,4 @@
         });
     </script>
 </body>
-</html>；
+</html>
