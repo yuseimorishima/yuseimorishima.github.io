@@ -2,31 +2,48 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>英単語復習ツール 完全版</title>
+<title>英単語復習ツール 完成版UX</title>
 
 https://cdn.jsdelivr.net/npm/chart.jsscript>
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f5f5f5;}
 .container{display:flex;height:100vh;}
-.sidebar{width:280px;background:#fff;border-right:1px solid #ddd;padding:20px;}
-.main{flex:1;padding:20px;overflow:auto;}
 
-.nav{padding:12px;margin-bottom:8px;background:#eee;border:none;width:100%;cursor:pointer;border-radius:6px;}
+.sidebar{
+  width:260px;background:white;padding:20px;border-right:1px solid #ddd;
+}
+
+.main{
+  flex:1;padding:20px;overflow:auto;
+}
+
+/* UI */
+.nav{width:100%;padding:12px;margin-bottom:8px;border:none;cursor:pointer;background:#eee;border-radius:6px;}
 .nav.active{background:#0066cc;color:white;}
 
-.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
 .button{background:#0066cc;color:white;padding:10px;border:none;border-radius:6px;width:100%;cursor:pointer;}
 input{width:100%;padding:10px;margin-bottom:10px;}
 
 .correct{color:#27ae60;}
 .wrong{color:#e74c3c;}
 
-.progress{height:6px;background:#eee;border-radius:3px;}
+.progress{height:6px;background:#eee;border-radius:3px;margin-top:10px;}
 .bar{height:6px;background:#0066cc;border-radius:3px;}
 
-.folder{padding:8px;border:1px solid #ddd;margin-bottom:5px;cursor:pointer;border-radius:6px;}
-.folder.active{background:#0066cc;color:white;}
+/* レベルアップ */
+.levelup{
+ position:fixed;
+ top:50%;left:50%;
+ transform:translate(-50%,-50%);
+ background:white;
+ padding:40px;
+ border-radius:10px;
+ box-shadow:0 10px 30px rgba(0,0,0,0.3);
+ display:none;
+ text-align:center;
+}
 </style>
 </head>
 
@@ -34,89 +51,108 @@ input{width:100%;padding:10px;margin-bottom:10px;}
 
 <div class="container">
 
-<!-- sidebar -->
+<!-- サイド -->
 <div class="sidebar">
-<h3>英単語ツール</h3>
-<button class="nav active" onclick="nav(event,'dashboard')">📊 分析</button>
+<h3>📘 学習ツール</h3>
+<button class="nav active" onclick="nav(event,'home')">🏠 ホーム</button>
 <button class="nav" onclick="nav(event,'words')">📚 管理</button>
 <button class="nav" onclick="nav(event,'study')">📝 学習</button>
-<button class="nav" onclick="nav(event,'result')">🏆 結果</button>
+<button class="nav" onclick="nav(event,'stats')">📊 分析</button>
 </div>
 
 <div class="main">
 
-<!-- dashboard -->
-<div id="dashboard">
+<!-- ホーム -->
+<div id="home">
+<div class="card">
+<h2>ようこそ</h2>
+<p>このツールは「復習に集中」するための学習アプリです。</p>
+
+<button class="button" onclick="startStudy()">▶ 学習開始</button>
+</div>
+
 <div class="card">
 <h3>ステータス</h3>
 <p>Lv: <span id="lv"></span></p>
 <p>XP: <span id="xp"></span></p>
-<p>正答率: <span id="acc"></span>%</p>
 <div class="progress"><div id="xpbar" class="bar"></div></div>
 </div>
-
-<div class="card">
-<h3>履歴グラフ</h3>
-<canvas id="chart"></canvas>
-</div>
 </div>
 
-<!-- words -->
+<!-- 単語 -->
 <div id="words" style="display:none">
+
 <div class="card">
 <h3>フォルダ作成</h3>
-<input id="fname">
-<button class="button" onclick="addFolder()">追加</button>
+<input id="fname" placeholder="フォルダ名">
+<button class="button" onclick="addFolder()">作成</button>
 <div id="folders"></div>
 </div>
 
 <div class="card">
 <h3>単語追加</h3>
-<input id="en">
-<input id="jp">
+<input id="en" placeholder="English">
+<input id="jp" placeholder="意味">
 <button class="button" onclick="addWord()">追加</button>
 <div id="wordList"></div>
 </div>
+
 </div>
 
-<!-- study -->
+<!-- 学習 -->
 <div id="study" style="display:none">
 <div class="card">
 <h2 id="q">Start</h2>
 <input id="ans">
-<button class="button" onclick="answer()">回答</button>
+<button class="button" onclick="submit()">回答</button>
 <p id="res"></p>
+
 </div>
 
 <div class="card">
 <p>進捗</p>
 <div class="progress"><div id="prog" class="bar"></div></div>
+<p id="count"></p>
 </div>
 </div>
 
-<!-- result -->
+<!-- 結果 -->
 <div id="result" style="display:none">
 <div class="card">
-<h2>結果</h2>
+<h2>📊 結果</h2>
 <p>正解: <span id="rc"></span></p>
 <p>正答率: <span id="ra"></span>%</p>
-<p>XP: +<span id="rxp"></span></p>
+<p>XP獲得: +<span id="rxp"></span></p>
 
 <button class="button" onclick="retry()">ミス復習</button>
-<button class="button" onclick="startNew()">新しく学習</button>
+<button class="button" onclick="goHome()">戻る</button>
+</div>
+</div>
+
+<!-- 分析 -->
+<div id="stats" style="display:none">
+<div class="card">
+<canvas id="chart"></canvas>
 </div>
 </div>
 
 </div>
+</div>
+
+<!-- レベルアップ -->
+<div id="levelup" class="levelup">
+<h2>🎉 LEVEL UP!</h2>
+<p id="newLv"></p>
+<button onclick="closeLevel()">OK</button>
 </div>
 
 <script>
 
 /* ===== データ ===== */
-let folders = JSON.parse(localStorage.getItem("f")||"[]");
+let folders=JSON.parse(localStorage.getItem("f")||"[]");
 let sel=null;
 
-let i=0, session=0;
+let i=0,session=0;
 let correct=0,total=0;
 let history=[];
 let wrong=[];
@@ -126,145 +162,163 @@ let lv=+localStorage.getItem("lv")||1;
 
 /* ===== ナビ ===== */
 function nav(e,id){
- document.querySelectorAll(".main>div").forEach(d=>d.style.display="none");
- document.getElementById(id).style.display="block";
- document.querySelectorAll(".nav").forEach(b=>b.classList.remove("active"));
- e.target.classList.add("active");
+document.querySelectorAll(".main>div").forEach(d=>d.style.display="none");
+document.getElementById(id).style.display="block";
+document.querySelectorAll(".nav").forEach(b=>b.classList.remove("active"));
+e.target.classList.add("active");
 }
 
-/* ===== 保存 ===== */
+/* ===== 保存 */
 function save(){
- localStorage.setItem("f",JSON.stringify(folders));
- localStorage.setItem("xp",xp);
- localStorage.setItem("lv",lv);
+localStorage.setItem("f",JSON.stringify(folders));
+localStorage.setItem("xp",xp);
+localStorage.setItem("lv",lv);
 }
 
 /* ===== フォルダ ===== */
 function addFolder(){
- if(!fname.value)return;
- folders.push({name:fname.value,words:[]});
- fname.value="";
- save();
- renderFolders();
+if(!fname.value)return;
+folders.push({name:fname.value,words:[]});
+fname.value="";
+save();renderFolders();
 }
 
 function renderFolders(){
- foldersEl.innerHTML = folders.map((f,idx)=>
- `<div class="folder ${idx===sel?'active':''}" onclick="selF(${idx})">${f.name}</div>`
- ).join("");
+foldersEl.innerHTML=folders.map((f,i)=>
+`<div onclick="selF(${i})">${f.name}</div>`
+).join("");
 }
 
-function selF(idx){
- sel=idx;
- renderFolders();
- renderWords();
-}
+function selF(i){sel=i;renderWords();}
 
 /* ===== 単語 ===== */
 function addWord(){
- if(sel===null)return;
- folders[sel].words.push({en:en.value,jp:jp.value});
- en.value="";jp.value="";
- save();
- renderWords();
+if(sel===null)return;
+folders[sel].words.push({en:en.value,jp:jp.value});
+en.value="";jp.value="";
+save();renderWords();
 }
 
 function renderWords(){
- if(sel===null)return;
- wordList.innerHTML = folders[sel].words.map(w=>`${w.en} - ${w.jp}`).join("<br>");
+if(sel===null)return;
+wordList.innerHTML=folders[sel].words.map(w=>`${w.en}-${w.jp}`).join("<br>");
 }
 
-/* ===== 学習 ===== */
+/* ===== 学習流れ ===== */
+function startStudy(){
+if(sel===null){
+alert("フォルダ選択して");
+nav({target:document.querySelectorAll(".nav")[1]},"words");
+return;
+}
+session=0;
+i=0;
+correct=0;
+wrong=[];
+nav({target:document.querySelectorAll(".nav")[2]},"study");
+next();
+}
+
+/* ===== 出題 */
 function next(){
- let w=folders[sel]?.words||[];
- if(!w.length){q.textContent="単語なし";return;}
- if(i>=w.length)i=0;
- q.textContent=w[i].jp;
+let w=folders[sel].words;
+if(i>=w.length)i=0;
+q.textContent=w[i].jp;
+count.textContent=`${session}/10`;
 }
 
-function answer(){
- let w=folders[sel].words;
- if(!w.length)return;
+/* ===== 回答 */
+function submit(){
+let w=folders[sel].words;
 
- session++; total++;
+let ok=ans.value===w[i].en;
+total++;session++;
 
- let ok = ans.value===w[i].en;
+if(ok){
+res.innerHTML="<span class='correct'>正解</span>";
+correct++;
+gainXP(10);
+history.push(1);
+}else{
+res.innerHTML="<span class='wrong'>不正解:"+w[i].en+"</span>";
+wrong.push(w[i]);
+history.push(0);
+}
 
- if(ok){
-   res.innerHTML="<span class='correct'>正解</span>";
-   correct++; gainXP(10); history.push(1);
- }else{
-   res.innerHTML="<span class='wrong'>不正解："+w[i].en+"</span>";
-   wrong.push(w[i]); history.push(0);
- }
+ans.value="";
+i++;
 
- ans.value="";
- i++;
+if(session>=10){
+showResult();
+}else{
+next();
+}
 
- if(session>=10){
-   showResult();
- }
-
- next();
- update();
+update();
 }
 
 /* ===== XP ===== */
 function gainXP(a){
- xp+=a;
- if(xp>=lv*50){
-   xp=0; lv++;
-   alert("レベルアップ！");
- }
+xp+=a;
+
+if(xp>=lv*50){
+xp=0;
+lv++;
+showLevelUp();
 }
 
-/* ===== 結果 ===== */
+save();
+}
+
+/* ===== レベルアップUI */
+function showLevelUp(){
+newLv.textContent="Lv "+lv;
+document.getElementById("levelup").style.display="block";
+}
+
+function closeLevel(){
+document.getElementById("levelup").style.display="none";
+}
+
+/* ===== 結果 */
 function showResult(){
- nav({target:document.querySelectorAll(".nav")[3]}, "result");
- rc.textContent=correct;
- ra.textContent=Math.round(correct/total*100)||0;
- rxp.textContent=correct*10;
+nav({target:document.querySelectorAll(".nav")[3]},"result");
+rc.textContent=correct;
+ra.textContent=Math.round(correct/total*100);
+rxp.textContent=correct*10;
 }
 
-/* ===== 復習 ===== */
+/* ===== 復習 */
 function retry(){
- folders[sel].words=[...wrong];
- wrong=[]; session=0; i=0;
- nav({target:document.querySelectorAll(".nav")[2]},"study");
+folders[sel].words=[...wrong];
+wrong=[];
+startStudy();
 }
 
-function startNew(){
- correct=0; total=0; session=0; i=0;
- nav({target:document.querySelectorAll(".nav")[2]},"study");
-}
-
-/* ===== 更新 ===== */
+/* ===== UI更新 */
 function update(){
- document.getElementById("lv").textContent=lv;
- document.getElementById("xp").textContent=xp;
- let acc=Math.round(correct/total*100)||0;
- document.getElementById("acc").textContent=acc;
- document.getElementById("xpbar").style.width=(xp/(lv*50))*100+"%";
- document.getElementById("prog").style.width=(session/10)*100+"%";
- draw();
+lv.textContent=lv;
+xp.textContent=xp;
+xpbar.style.width=(xp/(lv*50))*100+"%";
+prog.style.width=(session/10*100)+"%";
+draw();
 }
 
+/* ===== グラフ */
 let chart;
 function draw(){
- if(chart)chart.destroy();
- chart=new Chart(document.getElementById("chart"),{
-  type:'line',
-  data:{labels:history.map((_,i)=>i+1),
-  datasets:[{data:history,borderColor:"#0066cc"}]}
- });
+if(chart)chart.destroy();
+chart=new Chart(document.getElementById("chart"),{
+ type:'line',
+ data:{labels:history.map((_,i)=>i),
+ datasets:[{data:history,borderColor:"#0066cc"}]}
+});
 }
 
-/* ===== init ===== */
+/* ===== init */
 const foldersEl=document.getElementById("folders");
 renderFolders();
-renderWords();
 update();
-next();
 
 </script>
 
