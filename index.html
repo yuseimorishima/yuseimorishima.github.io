@@ -2,28 +2,30 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>英単語復習ツール</title>
+<title>英単語復習ツール 完全版</title>
 
 https://cdn.jsdelivr.net/npm/chart.jsscript>
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f5f5f5;}
 .container{display:flex;height:100vh;}
-.sidebar{width:300px;background:#fff;border-right:1px solid #ddd;padding:20px;}
+.sidebar{width:280px;background:#fff;border-right:1px solid #ddd;padding:20px;}
 .main{flex:1;padding:20px;overflow:auto;}
 
-.nav-btn{width:100%;padding:12px;margin-bottom:8px;border:none;background:#eee;cursor:pointer;}
-.nav-btn.active{background:#0066cc;color:white;}
+.nav{padding:12px;margin-bottom:8px;background:#eee;border:none;width:100%;cursor:pointer;border-radius:6px;}
+.nav.active{background:#0066cc;color:white;}
 
-.card{background:white;padding:20px;border-radius:10px;margin-bottom:15px;}
-
-input{width:100%;padding:10px;margin-top:5px;margin-bottom:10px;}
-
-.button{background:#0066cc;color:white;border:none;padding:10px;border-radius:6px;cursor:pointer;width:100%;}
+.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.button{background:#0066cc;color:white;padding:10px;border:none;border-radius:6px;width:100%;cursor:pointer;}
+input{width:100%;padding:10px;margin-bottom:10px;}
 
 .correct{color:#27ae60;}
 .wrong{color:#e74c3c;}
-.folder{padding:8px;border:1px solid #ddd;margin-bottom:5px;cursor:pointer;}
+
+.progress{height:6px;background:#eee;border-radius:3px;}
+.bar{height:6px;background:#0066cc;border-radius:3px;}
+
+.folder{padding:8px;border:1px solid #ddd;margin-bottom:5px;cursor:pointer;border-radius:6px;}
 .folder.active{background:#0066cc;color:white;}
 </style>
 </head>
@@ -32,75 +34,76 @@ input{width:100%;padding:10px;margin-top:5px;margin-bottom:10px;}
 
 <div class="container">
 
-<!-- Sidebar -->
+<!-- sidebar -->
 <div class="sidebar">
-<h2>復習ツール</h2>
-
-<button class="nav-btn active" onclick="nav(event,'dashboard')">📊 分析</button>
-<button class="nav-btn" onclick="nav(event,'words')">📚 管理</button>
-<button class="nav-btn" onclick="nav(event,'study')">📝 復習</button>
-<button class="nav-btn" onclick="nav(event,'profile')">👤 統計</button>
+<h3>英単語ツール</h3>
+<button class="nav active" onclick="nav(event,'dashboard')">📊 分析</button>
+<button class="nav" onclick="nav(event,'words')">📚 管理</button>
+<button class="nav" onclick="nav(event,'study')">📝 学習</button>
+<button class="nav" onclick="nav(event,'result')">🏆 結果</button>
 </div>
 
-<!-- Main -->
 <div class="main">
 
-<!-- Dashboard -->
+<!-- dashboard -->
 <div id="dashboard">
 <div class="card">
-<h3>統計</h3>
-<p>単語数: <span id="statWords"></span></p>
-<p>正解数: <span id="statCorrect"></span></p>
-<p>正答率: <span id="statAcc"></span>%</p>
+<h3>ステータス</h3>
+<p>Lv: <span id="lv"></span></p>
+<p>XP: <span id="xp"></span></p>
+<p>正答率: <span id="acc"></span>%</p>
+<div class="progress"><div id="xpbar" class="bar"></div></div>
 </div>
 
 <div class="card">
+<h3>履歴グラフ</h3>
 <canvas id="chart"></canvas>
 </div>
 </div>
 
-<!-- Words -->
+<!-- words -->
 <div id="words" style="display:none">
-
 <div class="card">
 <h3>フォルダ作成</h3>
-<input id="folderName" placeholder="フォルダ名">
-<button class="button" onclick="addFolder()">作成</button>
-</div>
-
-<div class="card">
-<h3>フォルダ一覧</h3>
-<div id="folderList"></div>
+<input id="fname">
+<button class="button" onclick="addFolder()">追加</button>
+<div id="folders"></div>
 </div>
 
 <div class="card">
 <h3>単語追加</h3>
-<input id="en" placeholder="英語">
-<input id="jp" placeholder="意味">
+<input id="en">
+<input id="jp">
 <button class="button" onclick="addWord()">追加</button>
-</div>
-
-<div class="card">
-<h3>単語一覧</h3>
 <div id="wordList"></div>
 </div>
-
 </div>
 
-<!-- Study -->
+<!-- study -->
 <div id="study" style="display:none">
 <div class="card">
 <h2 id="q">Start</h2>
-<input id="answer">
-<button class="button" onclick="check()">回答</button>
+<input id="ans">
+<button class="button" onclick="answer()">回答</button>
 <p id="res"></p>
+</div>
+
+<div class="card">
+<p>進捗</p>
+<div class="progress"><div id="prog" class="bar"></div></div>
 </div>
 </div>
 
-<!-- Profile -->
-<div id="profile" style="display:none">
+<!-- result -->
+<div id="result" style="display:none">
 <div class="card">
-<p>総問題数: <span id="totalQ"></span></p>
+<h2>結果</h2>
+<p>正解: <span id="rc"></span></p>
+<p>正答率: <span id="ra"></span>%</p>
+<p>XP: +<span id="rxp"></span></p>
+
+<button class="button" onclick="retry()">ミス復習</button>
+<button class="button" onclick="startNew()">新しく学習</button>
 </div>
 </div>
 
@@ -110,127 +113,158 @@ input{width:100%;padding:10px;margin-top:5px;margin-bottom:10px;}
 <script>
 
 /* ===== データ ===== */
-let folders = JSON.parse(localStorage.getItem("folders")||"[]");
-let selectedFolder = null;
-let correct=0,totalQ=0,i=0;
+let folders = JSON.parse(localStorage.getItem("f")||"[]");
+let sel=null;
+
+let i=0, session=0;
+let correct=0,total=0;
 let history=[];
+let wrong=[];
+
+let xp=+localStorage.getItem("xp")||0;
+let lv=+localStorage.getItem("lv")||1;
 
 /* ===== ナビ ===== */
 function nav(e,id){
  document.querySelectorAll(".main>div").forEach(d=>d.style.display="none");
  document.getElementById(id).style.display="block";
- document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+ document.querySelectorAll(".nav").forEach(b=>b.classList.remove("active"));
  e.target.classList.add("active");
 }
 
 /* ===== 保存 ===== */
 function save(){
- localStorage.setItem("folders",JSON.stringify(folders));
+ localStorage.setItem("f",JSON.stringify(folders));
+ localStorage.setItem("xp",xp);
+ localStorage.setItem("lv",lv);
 }
 
 /* ===== フォルダ ===== */
 function addFolder(){
- if(!folderName.value)return;
- folders.push({name:folderName.value,words:[]});
- folderName.value="";
+ if(!fname.value)return;
+ folders.push({name:fname.value,words:[]});
+ fname.value="";
  save();
  renderFolders();
 }
 
 function renderFolders(){
- folderList.innerHTML=folders.map((f,i)=>
-  `<div class="folder ${i===selectedFolder?'active':''}" onclick="selectFolder(${i})">${f.name}</div>`
+ foldersEl.innerHTML = folders.map((f,idx)=>
+ `<div class="folder ${idx===sel?'active':''}" onclick="selF(${idx})">${f.name}</div>`
  ).join("");
 }
 
-function selectFolder(id){
- selectedFolder=id;
+function selF(idx){
+ sel=idx;
  renderFolders();
  renderWords();
 }
 
 /* ===== 単語 ===== */
 function addWord(){
- if(selectedFolder===null)return;
-
- let w={en:en.value,jp:jp.value};
- folders[selectedFolder].words.push(w);
-
+ if(sel===null)return;
+ folders[sel].words.push({en:en.value,jp:jp.value});
  en.value="";jp.value="";
  save();
  renderWords();
- updateStats();
 }
 
 function renderWords(){
- if(selectedFolder===null){wordList.innerHTML="フォルダ選択";return;}
- wordList.innerHTML=folders[selectedFolder].words.map(w=>
-  `<div>${w.en} - ${w.jp}</div>`
- ).join("");
+ if(sel===null)return;
+ wordList.innerHTML = folders[sel].words.map(w=>`${w.en} - ${w.jp}`).join("<br>");
 }
 
 /* ===== 学習 ===== */
 function next(){
- if(selectedFolder===null)return;
-
- let w=folders[selectedFolder].words;
- if(w.length===0){q.textContent="単語なし";return;}
-
+ let w=folders[sel]?.words||[];
+ if(!w.length){q.textContent="単語なし";return;}
  if(i>=w.length)i=0;
  q.textContent=w[i].jp;
 }
 
-function check(){
- let w=folders[selectedFolder].words;
+function answer(){
+ let w=folders[sel].words;
  if(!w.length)return;
 
- totalQ++;
+ session++; total++;
 
- if(answer.value===w[i].en){
-  res.innerHTML="<span class='correct'>正解</span>";
-  correct++;history.push(1);
+ let ok = ans.value===w[i].en;
+
+ if(ok){
+   res.innerHTML="<span class='correct'>正解</span>";
+   correct++; gainXP(10); history.push(1);
  }else{
-  res.innerHTML="<span class='wrong'>不正解:"+w[i].en+"</span>";
-  history.push(0);
+   res.innerHTML="<span class='wrong'>不正解："+w[i].en+"</span>";
+   wrong.push(w[i]); history.push(0);
  }
 
- i++;answer.value="";
+ ans.value="";
+ i++;
+
+ if(session>=10){
+   showResult();
+ }
+
  next();
- updateStats();
+ update();
 }
 
-/* ===== 統計 ===== */
-function updateStats(){
- let totalWords=folders.reduce((a,f)=>a+f.words.length,0);
- statWords.innerText=totalWords;
- statCorrect.innerText=correct;
- totalQ.innerText=totalQ;
-
- let acc=totalQ?Math.round(correct/totalQ*100):0;
- statAcc.innerText=acc;
-
- drawChart();
+/* ===== XP ===== */
+function gainXP(a){
+ xp+=a;
+ if(xp>=lv*50){
+   xp=0; lv++;
+   alert("レベルアップ！");
+ }
 }
 
-/* ===== グラフ ===== */
+/* ===== 結果 ===== */
+function showResult(){
+ nav({target:document.querySelectorAll(".nav")[3]}, "result");
+ rc.textContent=correct;
+ ra.textContent=Math.round(correct/total*100)||0;
+ rxp.textContent=correct*10;
+}
+
+/* ===== 復習 ===== */
+function retry(){
+ folders[sel].words=[...wrong];
+ wrong=[]; session=0; i=0;
+ nav({target:document.querySelectorAll(".nav")[2]},"study");
+}
+
+function startNew(){
+ correct=0; total=0; session=0; i=0;
+ nav({target:document.querySelectorAll(".nav")[2]},"study");
+}
+
+/* ===== 更新 ===== */
+function update(){
+ document.getElementById("lv").textContent=lv;
+ document.getElementById("xp").textContent=xp;
+ let acc=Math.round(correct/total*100)||0;
+ document.getElementById("acc").textContent=acc;
+ document.getElementById("xpbar").style.width=(xp/(lv*50))*100+"%";
+ document.getElementById("prog").style.width=(session/10)*100+"%";
+ draw();
+}
+
 let chart;
-function drawChart(){
- let ctx=document.getElementById("chart");
+function draw(){
  if(chart)chart.destroy();
-
- chart=new Chart(ctx,{
+ chart=new Chart(document.getElementById("chart"),{
   type:'line',
-  data:{
-   labels:history.map((_,i)=>i+1),
-   datasets:[{data:history,borderColor:"#0066cc"}]
-  }
+  data:{labels:history.map((_,i)=>i+1),
+  datasets:[{data:history,borderColor:"#0066cc"}]}
  });
 }
 
-/* ===== 初期 ===== */
+/* ===== init ===== */
+const foldersEl=document.getElementById("folders");
 renderFolders();
 renderWords();
-updateStats();
+update();
+next();
 
 </script>
 
