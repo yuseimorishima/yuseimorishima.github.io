@@ -1511,5 +1511,45 @@
         }
     </script>
 
+
+<style>
+.notice small, #localEvidence small { line-height: 1.5; color: #6d7480; }
+#localEvidence { border-left-color: #25803d; background: #f4fbf5; }
+</style>
+
+<script>
+/* GitHub Pages loader for the complete compressed municipality dataset.
+ * The gzip file contains the full source payload, including all GeoJSON geometry.
+ */
+const LOCAL_DATA_URL = './energy-data.json.gz';
+let LOCAL_ENERGY = { ready: false, records: [], byName: new Map(), source: '地域エネルギー需給データベース' };
+function clamp100(v) { return Math.max(0, Math.min(100, Number(v) || 0)); }
+function localRows(doc) { return (doc?.data?.allData || []).filter(r => Array.isArray(r) && r[0]?.properties); }
+function buildLocalEnergy(doc) {
+    const rows = localRows(doc);
+    const records = rows.map(row => { const props = row[0].properties || {}; return { name: props['地域名'] || row[1] || '', potentialTJ: Number(props['再生可能エネルギー導入ポテンシャル[TJ]'] ?? row[2]) || null, demandTJ: Number(props['最終エネルギー消費量[TJ]'] ?? row[3]) || null, sufficiencyPct: Number(props['エネルギー自給率[%]'] ?? row[4]) || 0, exportableTJ: Number(props['再生可能エネルギー移出ポテンシャル[TJ]'] ?? row[5]) || null, geometry: row[0].geometry || null }; });
+    const values = key => records.map(r => Number(r[key])).filter(Number.isFinite).sort((a,b)=>a-b);
+    const percentile = (v, arr) => { if (!Number.isFinite(v) || !arr.length) return null; let n=0; for (const x of arr) if (x<=v) n++; return n/arr.length*100; };
+    const distributions = { potentialTJ: values('potentialTJ'), demandTJ: values('demandTJ'), sufficiencyPct: values('sufficiencyPct'), exportableTJ: values('exportableTJ') };
+    records.forEach(r => { r.percentile = {}; Object.keys(distributions).forEach(k => r.percentile[k] = percentile(r[k], distributions[k])); });
+    LOCAL_ENERGY.records=records; LOCAL_ENERGY.byName=new Map(records.map(r=>[r.name,r])); LOCAL_ENERGY.ready=records.length>0;
+}
+async function loadLocalEnergyData() {
+    try {
+        if (!('DecompressionStream' in window)) throw new Error('このブラウザはgzip展開に対応していません。最新版のChrome、Edge、Firefox、Safariをご利用ください。');
+        const response=await fetch(LOCAL_DATA_URL, {cache:'no-cache'}); if(!response.ok) throw new Error('energy-data.json.gz: '+response.status);
+        const stream=response.body.pipeThrough(new DecompressionStream('gzip')); const json=await new Response(stream).json(); buildLocalEnergy(json);
+        if(currentData) enrichAndRefresh(currentData);
+    } catch(e) { console.error('圧縮された地域データを読み込めませんでした。', e); const box=document.getElementById('localEvidence'); if(box) box.innerHTML='<strong>地域データの読込に失敗</strong><br><small>'+e.message+'</small>'; }
+}
+function findLocalRecord(name) { if(!LOCAL_ENERGY.ready||!name) return null; if(LOCAL_ENERGY.byName.has(name)) return LOCAL_ENERGY.byName.get(name); return LOCAL_ENERGY.records.find(r=>name.includes(r.name)||r.name.includes(name))||null; }
+function enrichAndRefresh(data) { if(!data)return; const local=findLocalRecord(data.name); data.local=local; if(local){ data.sourceEvidence={potentialTJ:local.potentialTJ,demandTJ:local.demandTJ,sufficiencyPct:local.sufficiencyPct,exportableTJ:local.exportableTJ,source:'energy-sustainability.jp の市区町村データ（単位・時間基準は原表記を保持）'}; const aggregateSignal=clamp100((local.percentile.exportableTJ??50)*.6+clamp100(Math.min(local.sufficiencyPct,100))*.4); Object.keys(data.p).forEach(k=>data.p[k]=Math.round(clamp100(data.p[k]*.7+aggregateSignal*.3))); } displayResult(); renderLocalEvidence(); }
+function renderLocalEvidence(){ const box=document.getElementById('localEvidence'); if(!box)return; const r=currentData?.local; if(!r){box.innerHTML='<strong>地域データ</strong><br>この地点に対応する市区町村データは未取得です。';return;} const fmt=v=>Number.isFinite(v)?v.toLocaleString('ja-JP'):'未取得'; box.innerHTML=`<strong>公式データファイルから確認</strong><br>導入ポテンシャル: <b>${fmt(r.potentialTJ)} TJ</b> ／ 最終エネルギー消費: <b>${fmt(r.demandTJ)} TJ</b><br>エネルギー自給率: <b>${fmt(r.sufficiencyPct)}%</b> ／ 移出ポテンシャル: <b>${fmt(r.exportableTJ)} TJ</b><br><small>※行政区域の推計値です。設備の発電量、設置可否、系統容量、年次はこの値だけでは確定しません。</small>`; }
+function addLocalEvidencePanel(){ const result=document.getElementById('result-container'); if(!result||document.getElementById('localEvidence'))return; const div=document.createElement('div');div.id='localEvidence';div.className='decision-box';result.insertBefore(div,result.firstChild);renderLocalEvidence(); }
+const _originalAnalyze=window.analyze; window.analyze=async function(lat,lon,customName){await _originalAnalyze(lat,lon,customName);if(currentData){enrichAndRefresh(currentData);addLocalEvidencePanel();}};
+const _originalAnalyzeSearch=window.analyzeWithMinTime; window.analyzeWithMinTime=async function(lat,lon,customName,startTime){await _originalAnalyzeSearch(lat,lon,customName,startTime);if(currentData){enrichAndRefresh(currentData);addLocalEvidencePanel();}};
+window.addEventListener('load',loadLocalEnergyData);
+</script>
+
 </body>
 </html>
