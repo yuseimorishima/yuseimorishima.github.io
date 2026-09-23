@@ -3,499 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>エネルギー解析ツール - 時間帯対応版</title>
+    <title>エネルギー解析ツール - 地域条件対応版</title><meta name="energy-tool-release" content="2026-09-23-location-scoring-v2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            display: flex;
-            height: 100vh;
-            flex-direction: row;
-        }
-        .map-section {
-            flex: 1;
-            position: relative;
-        }
-        #map {
-            width: 100%;
-            height: 100%;
-        }
-        .sidebar {
-            width: 450px;
-            background: white;
-            border-left: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-        }
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #ddd;
-        }
-        .tab-button {
-            flex: 1;
-            padding: 12px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-        .tab-button.active {
-            color: #0066cc;
-            border-bottom-color: #0066cc;
-            background: #f9f9f9;
-        }
-        .tab-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .control-group {
-            margin-bottom: 20px;
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        .control-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        .season-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 8px;
-        }
-        .season-btn {
-            padding: 8px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .season-btn.active {
-            background: #0066cc;
-            color: white;
-            border-color: #0066cc;
-        }
-        .season-btn:hover {
-            border-color: #0066cc;
-        }
-        .time-display {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .time-display .time-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #0066cc;
-        }
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #0066cc;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #0066cc;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .result-card {
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .energy-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .result-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        .result-location {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        .result-description {
-            font-size: 12px;
-            color: #555;
-            line-height: 1.5;
-            margin-bottom: 10px;
-        }
-        .chart-container {
-            position: relative;
-            height: 280px;
-            margin-bottom: 15px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        .chart-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        .time-based-chart {
-            position: relative;
-            height: 250px;
-            margin-bottom: 15px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .loading-overlay.active {
-            display: flex;
-        }
-        .loading-box {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            max-width: 400px;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #0066cc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loading-message {
-            font-size: 14px;
-            color: #333;
-            font-weight: 500;
-            line-height: 1.6;
-        }
-        .button {
-            width: 100%;
-            padding: 10px;
-            background: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: background 0.2s;
-            margin-top: 10px;
-        }
-        .button:hover {
-            background: #0052a3;
-        }
-        .button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #999;
-        }
-        .empty-state-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
-        }
-        .compare-list {
-            margin-bottom: 15px;
-        }
-        .compare-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-        .compare-item-remove {
-            background: #ff4444;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .compare-results {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f8ff;
-            border-radius: 8px;
-            border-left: 4px solid #0066cc;
-        }
-        .result-item {
-            padding: 8px;
-            margin-bottom: 8px;
-            background: white;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .result-item strong {
-            color: #0066cc;
-        }
-        .heatmap-toggle-btn {
-            padding: 10px 16px;
-            background: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        .heatmap-toggle-btn:hover {
-            background: #0052a3;
-        }
-        .heatmap-toggle-btn.active {
-            background: #cc6600;
-        }
-        .citation {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            font-size: 10px;
-            color: #999;
-            text-align: right;
-            z-index: 100;
-        }
-        .citation a {
-            color: #999;
-            text-decoration: none;
-        }
-        .citation a:hover {
-            text-decoration: underline;
-        }
-        .leaflet-attribution {
-            display: none !important;
-        }
-        .toast {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #4CAF50;
-            color: white;
-            padding: 20px 40px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 999;
-            animation: slideInCenter 0.3s ease-out;
-        }
-        @keyframes slideInCenter {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.8);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-        }
-        
-        @media (max-width: 1024px) {
-            .sidebar {
-                width: 350px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-                height: auto;
-            }
-            .map-section {
-                width: 100%;
-                height: 50vh;
-                min-height: 300px;
-            }
-            .sidebar {
-                width: 100%;
-                height: 50vh;
-                border-left: none;
-                border-top: 1px solid #ddd;
-                box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-            }
-            .season-buttons {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .map-section {
-                height: 40vh;
-                min-height: 250px;
-            }
-            .sidebar {
-                height: 60vh;
-            }
-            .tab-button {
-                padding: 8px;
-                font-size: 12px;
-            }
-            .tab-content {
-                padding: 12px;
-                font-size: 12px;
-            }
-            .control-group {
-                padding: 10px;
-                margin-bottom: 12px;
-            }
-        }
-    
-        .mode-switch { display:flex; gap:8px; padding:12px 15px; background:#eef6ff; border-bottom:1px solid #d8e8f8; }
-        .mode-btn { flex:1; padding:9px 6px; border:1px solid #bdd5ec; border-radius:6px; background:#fff; color:#42627e; cursor:pointer; font-size:12px; font-weight:600; }
-        .mode-btn.active { color:#fff; background:#0066cc; border-color:#0066cc; }
-        .purpose-card { background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:18px; }
-        .purpose-card h3 { color:#0066cc; font-size:15px; margin-bottom:6px; }
-        .purpose-card p { font-size:11px; line-height:1.6; color:#666; margin-bottom:12px; }
-        .purpose-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
-        .purpose-btn { border:1px solid #d7e0ea; background:#fff; padding:9px 5px; border-radius:6px; cursor:pointer; font-size:11px; color:#555; }
-        .purpose-btn.active { background:#e8f2ff; border-color:#0066cc; color:#0066cc; font-weight:600; }
-        .goal-summary { background:#f0f8ff; border-left:4px solid #0066cc; padding:11px; border-radius:4px; font-size:11px; line-height:1.6; color:#555; margin-bottom:12px; }
-        .education-card { background:#fffaf0; border:1px solid #f1dfae; padding:15px; border-radius:8px; margin-bottom:15px; }
-        .education-card h3 { color:#a66b00; font-size:15px; margin-bottom:6px; }
-        .education-card p { font-size:11px; color:#6d5b35; line-height:1.6; margin-bottom:10px; }
-        .lesson-step { display:flex; gap:8px; align-items:flex-start; margin:8px 0; font-size:11px; line-height:1.5; color:#555; }
-        .step-num { flex:0 0 20px; height:20px; border-radius:50%; background:#f1c40f; color:#6d5200; text-align:center; line-height:20px; font-weight:bold; }
-        .edu-question { font-size:12px; font-weight:600; color:#555; margin:10px 0 5px; }
-        .edu-select { width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fff; font-size:12px; }
-        .answer-box { background:#fff; border:1px solid #eee; border-radius:6px; padding:12px; font-size:11px; color:#555; line-height:1.6; margin-top:12px; }
-        .result-highlight { background:#f0f8ff; border-left:4px solid #0066cc; padding:12px; border-radius:4px; margin:12px 0; }
-        .mini-metrics { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
-        .mini-metric { background:#f9f9f9; border-radius:6px; padding:9px; }
-        .mini-metric small { display:block; color:#777; font-size:10px; }
-        .mini-metric strong { display:block; margin-top:3px; color:#333; font-size:15px; }
-
-    
-        .decision-box { background:#f8fbff; border:1px solid #d7e8f8; border-radius:8px; padding:12px; margin:12px 0; }
-        .decision-box h4 { color:#0066cc; font-size:13px; margin-bottom:8px; }
-        .score-row { display:grid; grid-template-columns:72px 1fr 38px; gap:6px; align-items:center; margin:6px 0; font-size:10px; color:#666; }
-        .score-track { height:7px; border-radius:4px; background:#e8edf2; overflow:hidden; }
-        .score-fill { height:100%; background:#0066cc; border-radius:4px; }
-        .candidate { padding:10px; border:1px solid #e1e6eb; border-radius:6px; margin:7px 0; background:#fff; }
-        .candidate.best { border-color:#0066cc; box-shadow:0 0 0 1px #d7e8f8; }
-        .candidate-head { display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:600; }
-        .candidate-score { color:#0066cc; }
-        .reason-list { margin:6px 0 0 16px; font-size:10px; color:#666; line-height:1.55; }
-        .uncertainty { background:#fffaf0; border:1px solid #f1dfae; padding:10px; border-radius:6px; font-size:10px; color:#6d5b35; line-height:1.55; margin-top:10px; }
-
-    
-        .scenario-tabs { display:flex; gap:6px; margin:8px 0 10px; flex-wrap:wrap; }
-        .scenario-tab { padding:6px 8px; background:#fff; border:1px solid #ccd9e6; border-radius:5px; font-size:10px; color:#50677d; }
-        .scenario-tab.current { background:#e8f2ff; border-color:#0066cc; color:#0066cc; font-weight:bold; }
-        .action-list { margin:8px 0 0 18px; font-size:11px; color:#555; line-height:1.7; }
-        .action-list li::marker { color:#0066cc; }
-        .fit-good { color:#25803d; font-weight:bold; }
-        .fit-caution { color:#a66b00; font-weight:bold; }
-        .assumption { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:10px; color:#666; margin-top:8px; }
-        .assumption input { width:70px; padding:4px; border:1px solid #ddd; border-radius:4px; text-align:right; }
-
-    
-        .needs-panel { background:#f4f8fc; border:1px solid #d9e7f3; border-radius:8px; padding:15px; margin-bottom:18px; }
-        .needs-panel h3 { font-size:15px; color:#0066cc; margin-bottom:5px; }
-        .needs-panel > p { font-size:11px; line-height:1.6; color:#667788; margin-bottom:12px; }
-        .needs-question { font-size:12px; font-weight:600; color:#444; margin:12px 0 6px; }
-        .needs-options { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-        .needs-option { position:relative; }
-        .needs-option input { position:absolute; opacity:0; }
-        .needs-option label { display:block; padding:9px 6px; border:1px solid #d3dee9; background:#fff; border-radius:6px; cursor:pointer; text-align:center; font-size:11px; color:#556; }
-        .needs-option input:checked + label { border-color:#0066cc; background:#e8f2ff; color:#0066cc; font-weight:bold; }
-        .needs-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-        .needs-input { width:100%; padding:8px; border:1px solid #d5dce5; border-radius:6px; font-size:12px; background:#fff; }
-        .needs-result { background:#fff; border:2px solid #0066cc; border-radius:8px; padding:15px; margin-bottom:15px; }
-        .needs-verdict { font-size:20px; font-weight:bold; color:#0066cc; margin:4px 0 8px; }
-        .needs-reason { font-size:12px; line-height:1.7; color:#555; }
-        .needs-kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
-        .needs-kpi { background:#f8f9fa; padding:9px; border-radius:6px; }
-        .needs-kpi small { display:block; color:#777; font-size:10px; }
-        .needs-kpi strong { display:block; font-size:15px; color:#333; margin-top:3px; }
-        .needs-next { background:#f0f8ff; border-left:4px solid #0066cc; padding:10px; border-radius:4px; font-size:11px; line-height:1.6; margin-top:12px; }
-
-    </style>
-<style>.potential-learning{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e5;border:1px solid #ead59c}.potential-learning strong{color:#725412}.potential-learning p{margin:6px 0;color:#66582f;line-height:1.6}.unit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.unit-grid span{padding:8px 6px;border-radius:6px;background:#fffefa;text-align:center}.unit-grid b{display:block;color:#1d6f56;font-size:14px}.unit-grid small{display:block;margin-top:3px;color:#7d7561;font-size:9px;line-height:1.3}.household-note{font-size:10px}.data-caution{margin-top:10px;padding-top:8px;border-top:1px solid #d6e5d8;font-size:10px;line-height:1.6;color:#5d7168}@media(max-width:600px){.unit-grid{grid-template-columns:1fr}}</style><style>.potential-scenario{margin-top:12px;padding:12px;border-radius:8px;background:#eef7f3;border:1px solid #b9d9cc}.potential-scenario strong{color:#155b4c}.potential-scenario p{margin:6px 0;color:#46665c;line-height:1.6;font-size:10px}.potential-scenario label{display:block;margin-top:9px;color:#315d52;font-size:10px;font-weight:700}.potential-scenario select{margin-left:6px;padding:6px;border:1px solid #a9cfc0;border-radius:5px;background:#fffefa;color:#164e45;font-size:10px}.scenario-output{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.scenario-output div{padding:8px;border-radius:6px;background:#fffefa}.scenario-output span,.scenario-output small{display:block;color:#74847d;font-size:9px}.scenario-output b{display:block;margin:3px 0;color:#167361;font-size:15px}.scenario-assumption{font-size:9px!important}.data-caution{margin-top:10px;padding-top:8px;border-top:1px solid #d6e5d8;font-size:10px;line-height:1.6;color:#5d7168}@media(max-width:600px){.unit-grid{grid-template-columns:1fr}.scenario-output{grid-template-columns:1fr 1fr}}</style></head>
+    <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; } .container { display: flex; height: 100vh; flex-direction: row; } .map-section { flex: 1; position: relative; } #map { width: 100%; height: 100%; } .sidebar { width: 450px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -2px 0 8px rgba(0,0,0,0.1); } .tabs { display: flex; border-bottom: 1px solid #ddd; } .tab-button { flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 500; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s; } .tab-button.active { color: #0066cc; border-bottom-color: #0066cc; background: #f9f9f9; } .tab-content { flex: 1; overflow-y: auto; padding: 20px; display: none; } .tab-content.active { display: block; } .control-group { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; } .control-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; } .season-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; } .season-btn { padding: 8px; border: 2px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; } .season-btn.active { background: #0066cc; color: white; border-color: #0066cc; } .season-btn:hover { border-color: #0066cc; } .time-display { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; } .time-display .time-value { font-size: 18px; font-weight: bold; color: #0066cc; } input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: #ddd; outline: none; -webkit-appearance: none; } input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #0066cc; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); } input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #0066cc; cursor: pointer; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); } .result-card { background: white; border: 2px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; } .energy-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; color: white; font-size: 12px; font-weight: bold; margin-bottom: 10px; } .result-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #333; } .result-location { font-size: 13px; color: #666; margin-bottom: 10px; } .result-description { font-size: 12px; color: #555; line-height: 1.5; margin-bottom: 10px; } .chart-container { position: relative; height: 280px; margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; } .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #333; } .time-based-chart { position: relative; height: 250px; margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; } .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; } .loading-overlay.active { display: flex; } .loading-box { background: white; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 400px; } .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0066cc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } .loading-message { font-size: 14px; color: #333; font-weight: 500; line-height: 1.6; } .button { width: 100%; padding: 10px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; margin-top: 10px; } .button:hover { background: #0052a3; } .button:disabled { background: #ccc; cursor: not-allowed; } .empty-state { text-align: center; padding: 40px 20px; color: #999; } .empty-state-icon { font-size: 40px; margin-bottom: 10px; } .compare-list { margin-bottom: 15px; } .compare-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 6px; margin-bottom: 8px; font-size: 13px; } .compare-item-remove { background: #ff4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; } .compare-results { margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #0066cc; } .result-item { padding: 8px; margin-bottom: 8px; background: white; border-radius: 4px; font-size: 12px; } .result-item strong { color: #0066cc; } .heatmap-toggle-btn { padding: 10px 16px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; width: 100%; margin-bottom: 10px; } .heatmap-toggle-btn:hover { background: #0052a3; } .heatmap-toggle-btn.active { background: #cc6600; } .citation { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #999; text-align: right; z-index: 100; } .citation a { color: #999; text-decoration: none; } .citation a:hover { text-decoration: underline; } .leaflet-attribution { display: none !important; } .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #4CAF50; color: white; padding: 20px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 999; animation: slideInCenter 0.3s ease-out; } @keyframes slideInCenter { from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } } @media (max-width: 1024px) { .sidebar { width: 350px; } } @media (max-width: 768px) { .container { flex-direction: column; height: auto; } .map-section { width: 100%; height: 50vh; min-height: 300px; } .sidebar { width: 100%; height: 50vh; border-left: none; border-top: 1px solid #ddd; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); } .season-buttons { grid-template-columns: 1fr 1fr; } } @media (max-width: 480px) { .map-section { height: 40vh; min-height: 250px; } .sidebar { height: 60vh; } .tab-button { padding: 8px; font-size: 12px; } .tab-content { padding: 12px; font-size: 12px; } .control-group { padding: 10px; margin-bottom: 12px; } } .mode-switch { display:flex; gap:8px; padding:12px 15px; background:#eef6ff; border-bottom:1px solid #d8e8f8; } .mode-btn { flex:1; padding:9px 6px; border:1px solid #bdd5ec; border-radius:6px; background:#fff; color:#42627e; cursor:pointer; font-size:12px; font-weight:600; } .mode-btn.active { color:#fff; background:#0066cc; border-color:#0066cc; } .purpose-card { background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:18px; } .purpose-card h3 { color:#0066cc; font-size:15px; margin-bottom:6px; } .purpose-card p { font-size:11px; line-height:1.6; color:#666; margin-bottom:12px; } .purpose-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; } .purpose-btn { border:1px solid #d7e0ea; background:#fff; padding:9px 5px; border-radius:6px; cursor:pointer; font-size:11px; color:#555; } .purpose-btn.active { background:#e8f2ff; border-color:#0066cc; color:#0066cc; font-weight:600; } .goal-summary { background:#f0f8ff; border-left:4px solid #0066cc; padding:11px; border-radius:4px; font-size:11px; line-height:1.6; color:#555; margin-bottom:12px; } .education-card { background:#fffaf0; border:1px solid #f1dfae; padding:15px; border-radius:8px; margin-bottom:15px; } .education-card h3 { color:#a66b00; font-size:15px; margin-bottom:6px; } .education-card p { font-size:11px; color:#6d5b35; line-height:1.6; margin-bottom:10px; } .lesson-step { display:flex; gap:8px; align-items:flex-start; margin:8px 0; font-size:11px; line-height:1.5; color:#555; } .step-num { flex:0 0 20px; height:20px; border-radius:50%; background:#f1c40f; color:#6d5200; text-align:center; line-height:20px; font-weight:bold; } .edu-question { font-size:12px; font-weight:600; color:#555; margin:10px 0 5px; } .edu-select { width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fff; font-size:12px; } .answer-box { background:#fff; border:1px solid #eee; border-radius:6px; padding:12px; font-size:11px; color:#555; line-height:1.6; margin-top:12px; } .result-highlight { background:#f0f8ff; border-left:4px solid #0066cc; padding:12px; border-radius:4px; margin:12px 0; } .mini-metrics { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; } .mini-metric { background:#f9f9f9; border-radius:6px; padding:9px; } .mini-metric small { display:block; color:#777; font-size:10px; } .mini-metric strong { display:block; margin-top:3px; color:#333; font-size:15px; } .decision-box { background:#f8fbff; border:1px solid #d7e8f8; border-radius:8px; padding:12px; margin:12px 0; } .decision-box h4 { color:#0066cc; font-size:13px; margin-bottom:8px; } .score-row { display:grid; grid-template-columns:72px 1fr 38px; gap:6px; align-items:center; margin:6px 0; font-size:10px; color:#666; } .score-track { height:7px; border-radius:4px; background:#e8edf2; overflow:hidden; } .score-fill { height:100%; background:#0066cc; border-radius:4px; } .candidate { padding:10px; border:1px solid #e1e6eb; border-radius:6px; margin:7px 0; background:#fff; } .candidate.best { border-color:#0066cc; box-shadow:0 0 0 1px #d7e8f8; } .candidate-head { display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:600; } .candidate-score { color:#0066cc; } .reason-list { margin:6px 0 0 16px; font-size:10px; color:#666; line-height:1.55; } .uncertainty { background:#fffaf0; border:1px solid #f1dfae; padding:10px; border-radius:6px; font-size:10px; color:#6d5b35; line-height:1.55; margin-top:10px; } .scenario-tabs { display:flex; gap:6px; margin:8px 0 10px; flex-wrap:wrap; } .scenario-tab { padding:6px 8px; background:#fff; border:1px solid #ccd9e6; border-radius:5px; font-size:10px; color:#50677d; } .scenario-tab.current { background:#e8f2ff; border-color:#0066cc; color:#0066cc; font-weight:bold; } .action-list { margin:8px 0 0 18px; font-size:11px; color:#555; line-height:1.7; } .action-list li::marker { color:#0066cc; } .fit-good { color:#25803d; font-weight:bold; } .fit-caution { color:#a66b00; font-weight:bold; } .assumption { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:10px; color:#666; margin-top:8px; } .assumption input { width:70px; padding:4px; border:1px solid #ddd; border-radius:4px; text-align:right; } .needs-panel { background:#f4f8fc; border:1px solid #d9e7f3; border-radius:8px; padding:15px; margin-bottom:18px; } .needs-panel h3 { font-size:15px; color:#0066cc; margin-bottom:5px; } .needs-panel > p { font-size:11px; line-height:1.6; color:#667788; margin-bottom:12px; } .needs-question { font-size:12px; font-weight:600; color:#444; margin:12px 0 6px; } .needs-options { display:grid; grid-template-columns:1fr 1fr; gap:6px; } .needs-option { position:relative; } .needs-option input { position:absolute; opacity:0; } .needs-option label { display:block; padding:9px 6px; border:1px solid #d3dee9; background:#fff; border-radius:6px; cursor:pointer; text-align:center; font-size:11px; color:#556; } .needs-option input:checked + label { border-color:#0066cc; background:#e8f2ff; color:#0066cc; font-weight:bold; } .needs-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .needs-input { width:100%; padding:8px; border:1px solid #d5dce5; border-radius:6px; font-size:12px; background:#fff; } .needs-result { background:#fff; border:2px solid #0066cc; border-radius:8px; padding:15px; margin-bottom:15px; } .needs-verdict { font-size:20px; font-weight:bold; color:#0066cc; margin:4px 0 8px; } .needs-reason { font-size:12px; line-height:1.7; color:#555; } .needs-kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; } .needs-kpi { background:#f8f9fa; padding:9px; border-radius:6px; } .needs-kpi small { display:block; color:#777; font-size:10px; } .needs-kpi strong { display:block; font-size:15px; color:#333; margin-top:3px; } .needs-next { background:#f0f8ff; border-left:4px solid #0066cc; padding:10px; border-radius:4px; font-size:11px; line-height:1.6; margin-top:12px; }</style>
+<style>.potential-learning{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e5;border:1px solid #ead59c}.potential-learning strong{color:#725412}.potential-learning p{margin:6px 0;color:#66582f;line-height:1.6}.unit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.unit-grid span{padding:8px 6px;border-radius:6px;background:#fffefa;text-align:center}.unit-grid b{display:block;color:#1d6f56;font-size:14px}.unit-grid small{display:block;margin-top:3px;color:#7d7561;font-size:9px;line-height:1.3}.household-note{font-size:10px}.data-caution{margin-top:10px;padding-top:8px;border-top:1px solid #d6e5d8;font-size:10px;line-height:1.6;color:#5d7168}@media(max-width:600px){.unit-grid{grid-template-columns:1fr}}</style><style>.potential-scenario{margin-top:12px;padding:12px;border-radius:8px;background:#eef7f3;border:1px solid #b9d9cc}.potential-scenario strong{color:#155b4c}.potential-scenario p{margin:6px 0;color:#46665c;line-height:1.6;font-size:10px}.potential-scenario label{display:block;margin-top:9px;color:#315d52;font-size:10px;font-weight:700}.potential-scenario select{margin-left:6px;padding:6px;border:1px solid #a9cfc0;border-radius:5px;background:#fffefa;color:#164e45;font-size:10px}.scenario-output{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.scenario-output div{padding:8px;border-radius:6px;background:#fffefa}.scenario-output span,.scenario-output small{display:block;color:#74847d;font-size:9px}.scenario-output b{display:block;margin:3px 0;color:#167361;font-size:15px}.scenario-assumption{font-size:9px!important}.data-caution{margin-top:10px;padding-top:8px;border-top:1px solid #d6e5d8;font-size:10px;line-height:1.6;color:#5d7168}@media(max-width:600px){.unit-grid{grid-template-columns:1fr}.scenario-output{grid-template-columns:1fr 1fr}}</style><style>.regional-context-box{margin:12px 0;padding:14px;border:2px solid #b06a31;border-radius:10px;background:linear-gradient(135deg,#fff8ec,#fffdf8);color:#4a3827}.regional-context-box h4{margin:0 0 8px;color:#8c4e1c}.regional-context-box p{margin:6px 0;line-height:1.65;font-size:12px}.regional-context-columns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.regional-context-columns>div{padding:9px;border-radius:7px;background:#fff;border:1px solid #ead7bd;font-size:10px;line-height:1.55}.regional-context-box small{display:block;color:#806d5c;line-height:1.5}@media(max-width:600px){.regional-context-columns{grid-template-columns:1fr}}</style></head>
 <body>
     <div class="container">
         <div class="map-section">
@@ -742,7 +257,22 @@
             document.getElementById('loadingOverlay').classList.remove('active');
         }
 
-        async function analyze(lat, lon, customName) {
+        function applyCoordinateSignals(p,lat,lon,city,pref){
+    const la=Number(lat),lo=Number(lon),name=String(city||'');
+    // Fallback only when reverse-geocoding returns incomplete address fields.
+    // These are educational regional signals, not measured resource data.
+    if(Number.isFinite(la)&&Number.isFinite(lo)){
+        if(la>=41.0){p.wind+=25;p.solar+=8;}
+        if(la>=38.0&&la<41.0){p.wind+=18;p.hydro+=12;}
+        if(la>=35.0&&la<37.5&&lo>=136.0&&lo<=140.5){p.hydro+=25;}
+        if(la>=32.4&&la<=33.5&&lo>=130.4&&lo<=131.7){p.geo+=55;p.hydro+=12;}
+        if(la<32.0&&lo>=129.0&&lo<=131.5){p.solar+=18;p.wind+=10;}
+    }
+    if(/阿蘇|南阿蘇|高森|小国|産山/.test(name)){p.geo+=35;}
+    if(/海|港|岬|沿岸/.test(name)){p.wind+=18;}
+    if(/川|谷|渓|瀬/.test(name)){p.hydro+=18;}
+}
+async function analyze(lat, lon, customName) {
             showLoading();
             const startTime = Date.now();
             const MIN_LOADING_TIME = 3000;
@@ -773,6 +303,7 @@
                 if (pref.includes("山梨") || pref.includes("静岡") || pref.includes("群馬") || pref.includes("岡山") || city.includes("区") || city.includes("市")) {
                     p.solar += 35;
                 }
+                applyCoordinateSignals(p, lat, lon, city, pref);
 
                 let bestType = "SOLAR_AGRI";
                 if (p.geo > 65) bestType = "GEO_FLASH";
@@ -1245,6 +776,7 @@
                 if (pref.includes("山梨") || pref.includes("静岡") || pref.includes("群馬") || pref.includes("岡山") || city.includes("区") || city.includes("市")) {
                     p.solar += 35;
                 }
+                applyCoordinateSignals(p, lat, lon, city, pref);
 
                 let bestType = "SOLAR_AGRI";
                 if (p.geo > 65) bestType = "GEO_FLASH";
@@ -1530,10 +1062,16 @@ function clamp100(v){return Math.max(0,Math.min(100,Number(v)||0));}
 function normalizeRows(rows){return rows.map(row=>{if(Array.isArray(row)){const p=row[0]?.properties||{};return {name:p['地域名']||row[1]||'',potentialTJ:Number(p['再生可能エネルギー導入ポテンシャル[TJ]']??row[2])||null,demandTJ:Number(p['最終エネルギー消費量[TJ]']??row[3])||null,sufficiencyPct:Number(p['エネルギー自給率[%]']??row[4])||0,exportableTJ:Number(p['再生可能エネルギー移出ポテンシャル[TJ]']??row[5])||null,geometry:row[0].geometry||null};}return row;});}
 function buildLocalEnergy(rows){const records=normalizeRows(rows);const values=k=>records.map(r=>Number(r[k])).filter(Number.isFinite).sort((a,b)=>a-b);const percentile=(v,a)=>{if(!Number.isFinite(v)||!a.length)return null;let n=0;for(const x of a)if(x<=v)n++;return n/a.length*100;};const d={potentialTJ:values('potentialTJ'),demandTJ:values('demandTJ'),sufficiencyPct:values('sufficiencyPct'),exportableTJ:values('exportableTJ')};records.forEach(r=>{r.percentile={};Object.keys(d).forEach(k=>r.percentile[k]=percentile(r[k],d[k]));});LOCAL_ENERGY.records=records;LOCAL_ENERGY.byName=new Map(records.map(r=>[r.name,r]));LOCAL_ENERGY.ready=records.length>0;}
 function findLocalRecord(name){if(!LOCAL_ENERGY.ready||!name)return null;if(LOCAL_ENERGY.byName.has(name))return LOCAL_ENERGY.byName.get(name);return LOCAL_ENERGY.records.find(r=>name.includes(r.name)||r.name.includes(name))||null;}
-function enrichAndRefresh(data){if(!data)return;const local=findLocalRecord(data.name);data.local=local;if(local){data.sourceEvidence={potentialTJ:local.potentialTJ,demandTJ:local.demandTJ,sufficiencyPct:local.sufficiencyPct,exportableTJ:local.exportableTJ,source:'energy-sustainability.jp の市区町村データ（単位・時間基準は原表記を保持）'};const aggregateSignal=clamp100((local.percentile.exportableTJ??50)*.6+clamp100(Math.min(local.sufficiencyPct,100))*.4);Object.keys(data.p).forEach(k=>data.p[k]=Math.round(clamp100(data.p[k]*.7+aggregateSignal*.3)));}displayResult();renderLocalEvidence();}
+function enrichAndRefresh(data){if(!data)return;applyRegionalContext(data);const local=findLocalRecord(data.name);data.local=local;if(local){data.sourceEvidence={potentialTJ:local.potentialTJ,demandTJ:local.demandTJ,sufficiencyPct:local.sufficiencyPct,exportableTJ:local.exportableTJ,source:'energy-sustainability.jp の市区町村データ（単位・時間基準は原表記を保持）'};const aggregateSignal=clamp100((local.percentile.exportableTJ??50)*.6+clamp100(Math.min(local.sufficiencyPct,100))*.4);Object.keys(data.p).forEach(k=>data.p[k]=Math.round(clamp100(data.p[k]*.7+aggregateSignal*.3)));}displayResult();renderRegionalContext();renderLocalEvidence();}
 const POTENTIAL_SCENARIOS={solar:{label:'太陽光',annualMWhPerMW:1000,areaHaPerMW:1.2,cost100mPerMW:2.5,why:'屋根・遊休地など。日射、屋根の向き、影、耐荷重を要確認。'},wind:{label:'風力',annualMWhPerMW:2200,areaHaPerMW:0.3,cost100mPerMW:4.0,why:'風況が重要。景観・騒音・道路・送電線の確認が必要。'},hydro:{label:'水力',annualMWhPerMW:4000,areaHaPerMW:0.2,cost100mPerMW:5.0,why:'水量と落差が条件。河川環境と水利権の確認が必要。'},geo:{label:'地熱',annualMWhPerMW:7000,areaHaPerMW:0.5,cost100mPerMW:15.0,why:'地下資源の調査が必要。温泉・地域合意・掘削費を要確認。'},biomass:{label:'バイオマス',annualMWhPerMW:7000,areaHaPerMW:1.0,cost100mPerMW:6.0,why:'燃料を長期調達できるか、輸送と排熱利用を要確認。'}};
 function renderPotentialScenario(){return `<div class="potential-scenario"><strong>ポテンシャルを導入計画の目安にする</strong><p>下の計算は、地域ポテンシャルを選んだ発電方式だけで使うと仮定した学習用シナリオです。公式データに設備種類・設置場所・費用が含まれているわけではありません。</p><label>仮に選ぶ発電方式 <select id="potentialScenario" onchange="updatePotentialScenario()">${Object.entries(POTENTIAL_SCENARIOS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></label><div id="potentialScenarioResult"></div></div>`;}
 function updatePotentialScenario(){const r=currentData?.local;const key=document.getElementById('potentialScenario')?.value||'solar';const sc=POTENTIAL_SCENARIOS[key];const box=document.getElementById('potentialScenarioResult');if(!r||!box||!sc)return;const tj=Number(r.potentialTJ)||0;const annualGWh=tj/3.6;const annualMWh=tj*277.7777778;const mw=annualMWh/sc.annualMWhPerMW;const area=mw*sc.areaHaPerMW;const cost100m=mw*sc.cost100mPerMW;const costYen=cost100m*100000000;const fmt=n=>Number(n).toLocaleString('ja-JP',{maximumFractionDigits:1});box.innerHTML=`<div class="scenario-output"><div><span>発電電力量の目安</span><b>${fmt(annualGWh)} GWh/年</b><small>約${fmt(annualMWh)} MWh/年</small></div><div><span>必要設備容量</span><b>${fmt(mw)} MW</b><small>方式ごとの年間発電量を仮定</small></div><div><span>設置面積の目安</span><b>${fmt(area)} ha</b><small>1 ha = 10,000 m²</small></div><div><span>初期費用の目安</span><b>${fmt(cost100m)} 億円</b><small>約${fmt(costYen)}円</small></div></div><p class="scenario-assumption">${sc.label}の仮定：1MWあたり年間${fmt(sc.annualMWhPerMW)}MWh、面積${fmt(sc.areaHaPerMW)}ha、費用${fmt(sc.cost100mPerMW)}億円。${sc.why}</p>`;}
+const REGIONAL_CONTEXTS={
+ geothermal:{label:'地熱',title:'阿蘇周辺は地熱を調べる価値が高い地域です',note:'火山・温泉地域では、地下の熱を地域資源として学ぶ価値があります。ただし、家庭にそのまま地熱発電を設置できるという意味ではありません。温度・深さ・温泉への影響・掘削費用・許認可・地域合意を確認します。'}
+};
+function detectRegionalContext(data){const name=String(data?.name||'');const lat=Number(data?.lat),lon=Number(data?.lon);const asoName=/(阿蘇|南阿蘇|高森|小国|産山)/.test(name);const asoArea=Number.isFinite(lat)&&Number.isFinite(lon)&&lat>32.55&&lat<33.15&&lon>130.75&&lon<131.45;if(asoName||asoArea)return REGIONAL_CONTEXTS.geothermal;return null;}
+function applyRegionalContext(data){const context=detectRegionalContext(data);data.regionalContext=context;if(context?.label==='地熱'){data.regionalResourceSpotlight={key:'geo',label:'地熱',reason:context.note};data.p.geo=Math.max(Number(data.p.geo)||0,92);}}
+function renderRegionalContext(){const root=document.getElementById('result-container');if(!root)return;const old=document.getElementById('regionalContext');if(old)old.remove();const context=currentData?.regionalContext;if(!context)return;const el=document.createElement('div');el.id='regionalContext';el.className='regional-context-box';el.innerHTML=`<h4>地域資源としての注目候補：${context.label}</h4><p><strong>${context.title}</strong></p><p>${context.note}</p><div class="regional-context-columns"><div><b>地域資源の見方</b><br>「その地域で調べる価値が高いか」を示します。</div><div><b>導入候補の見方</b><br>家庭の屋根・予算・許認可など、実際に導入しやすいかは別に確認します。</div></div><small>この表示は火山・地名・位置による学習上の地域文脈です。地熱資源量の実測値や発電所建設の可否を保証しません。</small>`;root.insertBefore(el,root.firstChild);}
 function renderLocalEvidence(){const box=document.getElementById('localEvidence');if(!box)return;box.style.display='';const r=currentData?.local;if(!r){box.innerHTML='';box.style.display='none';return;}const fmt=v=>Number.isFinite(v)?v.toLocaleString('ja-JP'):'未取得';const tj=Number(r.potentialTJ);const kwh=tj*277777.7778;const gwh=tj/3.6;const household=Math.round(kwh/4000);box.innerHTML=`<strong>市区町村データを確認</strong><br>導入ポテンシャル: <b>${fmt(r.potentialTJ)} TJ</b> ／ 最終エネルギー消費: <b>${fmt(r.demandTJ)} TJ</b><br>エネルギー自給率: <b>${fmt(r.sufficiencyPct)}%</b> ／ 移出ポテンシャル: <b>${fmt(r.exportableTJ)} TJ</b><div class="potential-learning"><strong>ポテンシャルって何？</strong><p>この地域にある再生可能エネルギーを、条件が合えば取り出せる量の推計です。電気を今すぐ作れる量や、あなたの家に設置できる量そのものではありません。</p><div class="unit-grid"><span><b>${fmt(tj)} TJ</b><small>公式データの単位</small></span><span><b>${fmt(Math.round(gwh))} GWh</b><small>電力量への換算目安</small></span><span><b>${fmt(Math.round(kwh))} kWh</b><small>1 TJ ≒ 277,778 kWh</small></span></div><p class="household-note">年間4,000kWhを使う世帯と仮定すると、約${fmt(household)}世帯・年分です。学習用の目安で、公式データが年間値とは限りません。</p></div>${renderPotentialScenario()}<p class="data-caution">※1,741行政区域の推計値。山・森林・屋根などの面積をそのまま発電所にできる意味ではなく、土地の権利、自然環境、許認可、送電線、費用などの確認が必要です。</p>`;updatePotentialScenario();}
 function addLocalEvidencePanel(){const result=document.getElementById('result-container');if(!result||document.getElementById('localEvidence'))return;const div=document.createElement('div');div.id='localEvidence';div.className='decision-box';result.insertBefore(div,result.firstChild);renderLocalEvidence();}
 async function loadLocalEnergyData(){buildLocalEnergy(EMBEDDED_METRICS);try{if('DecompressionStream' in window){const response=await fetch(LOCAL_DATA_URL,{cache:'no-cache'});if(response.ok){const stream=response.body.pipeThrough(new DecompressionStream('gzip'));const full=await new Response(stream).json();buildLocalEnergy(full.data.allData);}}}catch(e){console.warn('完全GeoJSONは未読込。内蔵指標データを使用します。');}if(currentData)enrichAndRefresh(currentData);addLocalEvidencePanel();}
