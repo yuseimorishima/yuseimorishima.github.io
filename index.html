@@ -805,7 +805,7 @@ async function analyze(lat, lon, customName) {
             userPurpose = mode === 'education' ? 'know' : purposeFromNeedGoal();
             document.getElementById('educationPanel').style.display = mode === 'education' ? 'block' : 'none';
             document.getElementById('simulationControls').style.display = mode === 'education' ? 'block' : 'none';
-            if (currentData) displayResult();
+            if (currentData) { displayResult(); addLocalEvidencePanel(); }
         }
         function purposeFromNeedGoal() {
             const goal=document.querySelector('input[name="needGoal"]:checked')?.value || 'bill';
@@ -814,7 +814,7 @@ async function analyze(lat, lon, customName) {
         function setPurposeFromNeedGoal() {
             if(userMode !== 'personal') return;
             userPurpose=purposeFromNeedGoal();
-            if(currentData) displayResult();
+            if(currentData) { displayResult(); addLocalEvidencePanel(); }
         }
         function renderEducationPrompt() { document.getElementById('educationPrompt').textContent = themeText[document.getElementById('educationTheme').value]; }
         function getPurposeRecommendation() {
@@ -1047,5 +1047,4 @@ const _originalAnalyze=window.analyze;window.analyze=async function(lat,lon,cust
 
 </body>
 </html>
-
 
