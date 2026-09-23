@@ -997,12 +997,23 @@ async function analyze(lat, lon, customName) {
             const html=`<div class="needs-result"><div style="font-size:11px;color:#777">あなたの診断結果（目的：${goalNames[d.goal]}／住まい：${homeNames[d.home]}）</div><div class="needs-verdict" style="color:${d.color}">${d.verdict}</div><div class="needs-reason">${d.reason}</div><div class="needs-kpis"><div class="needs-kpi"><small>入力した月の電気代</small><strong>${d.bill.toLocaleString()}円</strong></div><div class="needs-kpi"><small>初期予算</small><strong>${d.budget.toLocaleString()}万円</strong></div><div class="needs-kpi"><small>設置条件</small><strong>${d.canInstall?'確認できそう':d.limitedInstall?'要確認':'制約あり'}</strong></div><div class="needs-kpi"><small>判断の段階</small><strong>${d.verdict.includes('導入')?'比較':'整理・確認'}</strong></div></div><div class="needs-next"><strong>次にやること</strong><br>${d.next}</div></div>`;
             const result=document.getElementById('result-container'); result.insertAdjacentHTML('afterbegin',html);
         }
+        function regionalAttention(best, local){
+            if(!local) return {label:'地域データ未照合', detail:'市区町村データとの対応が確認できないため、地域の消費量は表示できません。'};
+            const checks={solar:'日射量・屋根条件',wind:'風速・騒音',geo:'地下資源・温泉への影響',hydro:'河川流量・落差',bio:'燃料の調達'};
+            const check=checks[best.key]||'設備条件';
+            if(best.resource<40) return {label:'適地の根拠を調査',detail:`地域適性スコアは低めです。まず${check}の実データを調べてください。`};
+            if(best.resource<70) return {label:'資源条件を調査',detail:`${check}を調べ、利用できる場所があるか確認してください。`};
+            return {label:'導入条件を精査',detail:`地域適性スコアは高めですが、${check}と費用・許認可を別途確認してください。`};
+        }
         function displayResult(){
             if(typeof userMode!=='undefined' && userMode==='education') return displayEducationResult();
             if(!currentData)return;
             const d=needsDiagnosis();
-            const candidates=explainCandidates(),best=candidates[0],demand=calculateDemand(households,currentTime);
-            let html=`<div class="result-card"><div class="energy-badge" style="background-color:${currentData.res.c}">地域解析</div><div class="result-title">${currentData.name}の特徴</div><div class="result-description">先に生活上の診断を行うと、ここで地域条件とあなたの悩みを重ねて確認できます。現在は${EXPLAIN_LABELS[best.key]}が地域ポテンシャル上位です。</div><div class="mini-metrics"><div class="mini-metric"><small>地域適性上位</small><strong>${best.label}</strong></div><div class="mini-metric"><small>地域適性</small><strong>${Math.round(best.resource)}点</strong></div><div class="mini-metric"><small>現在時刻の需要</small><strong>${demand.toFixed(2)} kWh/h</strong></div><div class="mini-metric"><small>判断の注意</small><strong>現地確認が必要</strong></div></div></div><div class="decision-box"><h4>地域の結果を生活に結びつける</h4><p class="notice">地域ポテンシャルが高いことと、あなたの家に導入できることは別です。屋根・敷地、費用、停電時に守りたい機器、契約条件を順番に確認してください。</p><div class="uncertainty"><strong>地域解析だけで分からないこと</strong><br>屋根の向き・影・耐荷重、実測の日射量や風速、騒音、許認可、系統接続、補助制度、将来の住み替えはこの画面では確定できません。</div></div><div class="chart-container"><div class="chart-title">地域ポテンシャルの内訳</div><canvas id="potentialChart"></canvas></div>`;
+            const candidates=explainCandidates(),best=candidates[0];
+            const local=currentData.local;
+            const energyUse=local && Number.isFinite(local.demandTJ) ? `${local.demandTJ.toLocaleString('ja-JP')} TJ` : 'データ未照合';
+            const attention=regionalAttention(best,local);
+            let html=`<div class="result-card"><div class="energy-badge" style="background-color:${currentData.res.c}">地域解析</div><div class="result-title">${currentData.name}の特徴</div><div class="result-description">先に生活上の診断を行うと、ここで地域条件とあなたの悩みを重ねて確認できます。現在は${EXPLAIN_LABELS[best.key]}が地域ポテンシャル上位です。</div><div class="mini-metrics"><div class="mini-metric"><small>地域適性上位</small><strong>${best.label}</strong></div><div class="mini-metric"><small>地域適性</small><strong>${Math.round(best.resource)}点</strong></div><div class="mini-metric"><small>地域の最終エネルギー消費</small><strong>${energyUse}</strong></div><div class="mini-metric"><small>判断の注意</small><strong>${attention.label}</strong></div></div><p class="notice">最終エネルギー消費は市区町村全体の推計値（電力・燃料・熱を含む）で、選択時刻の実測需要ではありません。${attention.detail}</p></div><div class="decision-box"><h4>地域の結果を生活に結びつける</h4><p class="notice">地域ポテンシャルが高いことと、あなたの家に導入できることは別です。屋根・敷地、費用、停電時に守りたい機器、契約条件を順番に確認してください。</p><div class="uncertainty"><strong>地域解析だけで分からないこと</strong><br>屋根の向き・影・耐荷重、実測の日射量や風速、騒音、許認可、系統接続、補助制度、将来の住み替えはこの画面では確定できません。</div></div><div class="chart-container"><div class="chart-title">地域ポテンシャルの内訳</div><canvas id="potentialChart"></canvas></div>`;
             document.getElementById('result-container').innerHTML=html;
             const ctx=document.getElementById('potentialChart'); if(ctx)new Chart(ctx.getContext('2d'),{type:'radar',data:{labels:['太陽光','風力','地熱','水力','バイオマス'],datasets:[{label:'地域適性',data:[currentData.p.solar,currentData.p.wind,currentData.p.geo,currentData.p.hydro,currentData.p.bio],backgroundColor:'rgba(0,102,204,.18)',borderColor:'#0066cc',borderWidth:2}]},options:{scales:{r:{min:0,max:100}},plugins:{legend:{display:false}},maintainAspectRatio:false}});
         }
@@ -1039,3 +1050,4 @@ const _originalAnalyze=window.analyze;window.analyze=async function(lat,lon,cust
 
 </body>
 </html>
+
