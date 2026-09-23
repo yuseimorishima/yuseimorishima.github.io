@@ -43,8 +43,8 @@
 
                 <div class="needs-panel" id="needsPanel">
                     <h3>何を重視しますか？</h3>
-                    <p>ここで選んだ目的で発電方式の総合順位を計算します。目的を変えると地域解析の結果も更新されます。</p>
-                    <div class="needs-question">順位と診断に使う目的</div>
+                    <p>ここで選んだ目的に合わせて、次に調べる項目を案内します。方式ごとの地域適性データがないため、発電方式の1位は判定しません。</p>
+                    <div class="needs-question">確認したい目的</div>
                     <div class="needs-options" onchange="setPurposeFromNeedGoal()"><div class="needs-option"><input type="radio" name="needGoal" id="needBill" value="bill" checked><label for="needBill">電気代を抑えたい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needBlackout" value="blackout"><label for="needBlackout">停電が不安</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needEco" value="eco"><label for="needEco">環境に配慮したい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needKnow" value="know"><label for="needKnow">まず情報収集したい</label></div></div>
                     <div class="needs-question">住まい・予算（生活診断用。発電方式の順位には反映しません）</div>
                     <div class="needs-row"><div><span class="field-label">月の電気代（円）</span><input class="needs-input" id="monthlyBill" type="number" value="12000" min="0" max="100000"></div><div><span class="field-label">初期予算（万円）</span><input class="needs-input" id="needsBudget" type="number" value="100" min="0" max="100000"></div></div>
@@ -1006,13 +1006,11 @@ async function analyze(lat, lon, customName) {
         function displayResult(){
             if(typeof userMode!=='undefined' && userMode==='education') return displayEducationResult();
             if(!currentData)return;
-            const candidates=explainCandidates(),best=candidates[0];
             const local=currentData.local;
             const energyUse=local && Number.isFinite(local.demandTJ) ? `${local.demandTJ.toLocaleString('ja-JP')} TJ` : 'データ未照合';
-            const attention=regionalAttention(best,local);
-            let html=`<div class="result-card"><div class="energy-badge" style="background-color:${currentData.res.c}">地域解析</div><div class="result-title">${currentData.name}の特徴</div><div class="result-description">選んだ目的「${PURPOSE_NAMES[userPurpose]}」で総合評価した結果です。地域適性のほか、費用や安定性などの固定評価も含みます。</div><div class="mini-metrics"><div class="mini-metric"><small>目的別の総合評価1位</small><strong>${best.label}</strong></div><div class="mini-metric"><small>地域適性</small><strong>${Math.round(best.resource)}点</strong></div><div class="mini-metric"><small>地域の最終エネルギー消費</small><strong>${energyUse}</strong></div><div class="mini-metric"><small>判断の注意</small><strong>${attention.label}</strong></div></div><p class="notice">最終エネルギー消費は市区町村全体の推計値（電力・燃料・熱を含む）で、選択時刻の実測需要ではありません。${attention.detail}</p></div><div class="decision-box"><h4>地域の結果を生活に結びつける</h4><p class="notice">地域ポテンシャルが高いことと、あなたの家に導入できることは別です。屋根・敷地、費用、停電時に守りたい機器、契約条件を順番に確認してください。</p><div class="uncertainty"><strong>地域解析だけで分からないこと</strong><br>屋根の向き・影・耐荷重、実測の日射量や風速、騒音、許認可、系統接続、補助制度、将来の住み替えはこの画面では確定できません。</div></div><div class="chart-container"><div class="chart-title">地域ポテンシャルの内訳</div><canvas id="potentialChart"></canvas></div>`;
-            document.getElementById('result-container').innerHTML=html;
-            const ctx=document.getElementById('potentialChart'); if(ctx)new Chart(ctx.getContext('2d'),{type:'radar',data:{labels:['太陽光','風力','地熱','水力','バイオマス'],datasets:[{label:'地域適性',data:[currentData.p.solar,currentData.p.wind,currentData.p.geo,currentData.p.hydro,currentData.p.bio],backgroundColor:'rgba(0,102,204,.18)',borderColor:'#0066cc',borderWidth:2}]},options:{scales:{r:{min:0,max:100}},plugins:{legend:{display:false}},maintainAspectRatio:false}});
+            const checks={saving:'電気料金と日中の使用量、屋根・敷地の条件',backup:'停電時に使いたい機器、蓄電池・非常用電源の条件',eco:'方式別の資源量と環境への影響',know:'日射量・風速・河川流量・地熱資源などの方式別データ'};
+            const next=checks[userPurpose]||checks.know;
+            document.getElementById('result-container').innerHTML=`<div class="result-card"><div class="energy-badge" style="background-color:#0066cc">地域解析</div><div class="result-title">${currentData.name}の特徴</div><div class="result-description">選んだ目的「${PURPOSE_NAMES[userPurpose]}」について、確認する項目を示します。</div><div class="mini-metrics"><div class="mini-metric"><small>発電方式の1位</small><strong>判定保留</strong></div><div class="mini-metric"><small>方式別の地域適性</small><strong>データなし</strong></div><div class="mini-metric"><small>地域の最終エネルギー消費</small><strong>${energyUse}</strong></div><div class="mini-metric"><small>判断の注意</small><strong>方式別の調査が必要</strong></div></div><p class="notice">市区町村データは再生可能エネルギー全体の導入ポテンシャルと最終エネルギー消費の推計です。太陽光・風力・水力・地熱などの内訳や実測資源量は含まれないため、このデータだけで方式の順位は決められません。最終エネルギー消費も選択時刻の実測需要ではありません。</p></div><div class="decision-box"><h4>次に確認すること</h4><p class="notice">${next}を調べてください。導入の判断には、設置場所・費用・許認可・系統接続も確認が必要です。</p></div>`;
         }
     </script>
 
