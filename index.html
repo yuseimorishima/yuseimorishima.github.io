@@ -883,7 +883,7 @@ async function analyze(lat, lon, customName) {
         function displayEducationResult() {
             const p = currentData.p;
             const labels = { solar:'太陽光', wind:'風力', geo:'地熱', hydro:'水力', bio:'バイオマス' };
-            const strongest = Object.entries(p).sort((a,b)=>b[1]-a[1])[0];
+            const strongest = currentData.regionalContext?.label === '地熱' ? ['geo', Math.max(Number(p.geo)||0,92)] : Object.entries(p).sort((a,b)=>b[1]-a[1])[0];
             const demand = calculateDemand(households, currentTime);
             let html = `<div class="result-card"><div class="energy-badge" style="background:#f1c40f;color:#6d5200">学習モード</div><div class="result-title">${currentData.name}を観察する</div><div class="result-description">正解を一つに決めるのではなく、条件を変えたときに結果がどう変わるかを比べてみましょう。</div><div class="result-highlight"><strong>問いかけ</strong><br>${document.getElementById('educationPrompt')?.textContent || themeText.weather}</div><div class="mini-metrics"><div class="mini-metric"><small>地域で点数が高いもの</small><strong>${labels[strongest[0]]}</strong></div><div class="mini-metric"><small>その点数</small><strong>${strongest[1]} / 100</strong></div><div class="mini-metric"><small>選択中の時刻</small><strong>${String(currentTime).padStart(2,'0')}:00</strong></div><div class="mini-metric"><small>推定需要</small><strong>${demand.toFixed(2)} kWh/h</strong></div></div><div class="answer-box"><strong>考えてみよう</strong><br>季節を変えると、太陽光・風力・水力のどれが変化しましたか？発電量が多いことと、使いたい時間に発電できることは同じでしょうか？</div></div><div class="chart-container"><div class="chart-title">地域ポテンシャルを比べる</div><canvas id="potentialChart"></canvas></div>`;
             document.getElementById('result-container').innerHTML = html;
@@ -913,7 +913,8 @@ async function analyze(lat, lon, customName) {
             return Object.keys(EXPLAIN_BASE).map(key => {
                 const resource = Math.max(0, Math.min(100, currentData.p[key] || 0));
                 const b = EXPLAIN_BASE[key];
-                const score = resource*weights.resource + b.purpose*weights.purpose + b.stable*weights.stable + b.cost*weights.cost + b.eco*weights.eco + b.local*weights.local;
+                const regionalBonus = currentData.regionalContext?.label === '地熱' && key === 'geo' ? 18 : 0;
+                const score = resource*weights.resource + b.purpose*weights.purpose + b.stable*weights.stable + b.cost*weights.cost + b.eco*weights.eco + b.local*weights.local + regionalBonus;
                 const contributions = [
                     {name:'地域適性', value:resource, weight:weights.resource},
                     {name:'目的との相性', value:b.purpose, weight:weights.purpose},
@@ -935,7 +936,7 @@ async function analyze(lat, lon, customName) {
         }
         function explainReason(candidate) {
             const top = candidate.contributions.slice(0,2).map(c => `${c.name}が${Math.round(c.value)}点`).join('、');
-            return `${candidate.label}は、${top}が評価を押し上げています。${candidate.base.use}`;
+            const regionalNote = currentData.regionalContext?.label === '地熱' && candidate.key === 'geo' ? 'この地域は地熱を地域資源として注目する文脈があるため、地熱を優先表示しています。' : ''; return `${candidate.label}は、${top}が評価を押し上げています。${regionalNote}${candidate.base.use}`;
         }
         function displayResult() {
             if (!currentData) return;
