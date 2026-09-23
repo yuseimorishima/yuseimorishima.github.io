@@ -265,7 +265,6 @@
         if(la>=41.0){p.wind+=25;p.solar+=8;}
         if(la>=38.0&&la<41.0){p.wind+=18;p.hydro+=12;}
         if(la>=35.0&&la<37.5&&lo>=136.0&&lo<=140.5){p.hydro+=25;}
-        if(la>=32.4&&la<=33.5&&lo>=130.4&&lo<=131.7){p.geo+=55;p.hydro+=12;}
         if(la<32.0&&lo>=129.0&&lo<=131.5){p.solar+=18;p.wind+=10;}
     }
 }
@@ -1040,4 +1039,3 @@ const _originalAnalyze=window.analyze;window.analyze=async function(lat,lon,cust
 
 </body>
 </html>
-
