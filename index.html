@@ -42,32 +42,23 @@
 
 
                 <div class="needs-panel" id="needsPanel">
-                    <h3>まず、あなたの悩みを教えてください</h3>
-                    <p>発電方式を選ぶ前に、生活上の目的から考えます。入力は概算のためのもので、購入を自動的に勧めるものではありません。</p>
-                    <div class="needs-question">今いちばん近い悩みは？</div>
-                    <div class="needs-options"><div class="needs-option"><input type="radio" name="needGoal" id="needBill" value="bill" checked><label for="needBill">電気代を抑えたい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needBlackout" value="blackout"><label for="needBlackout">停電が不安</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needEco" value="eco"><label for="needEco">環境に配慮したい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needKnow" value="know"><label for="needKnow">まず情報収集したい</label></div></div>
-                    <div class="needs-question">あなたの住まい・予算</div>
+                    <h3>何を重視しますか？</h3>
+                    <p>ここで選んだ目的で発電方式の総合順位を計算します。目的を変えると地域解析の結果も更新されます。</p>
+                    <div class="needs-question">順位と診断に使う目的</div>
+                    <div class="needs-options" onchange="setPurposeFromNeedGoal()"><div class="needs-option"><input type="radio" name="needGoal" id="needBill" value="bill" checked><label for="needBill">電気代を抑えたい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needBlackout" value="blackout"><label for="needBlackout">停電が不安</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needEco" value="eco"><label for="needEco">環境に配慮したい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needKnow" value="know"><label for="needKnow">まず情報収集したい</label></div></div>
+                    <div class="needs-question">住まい・予算（生活診断用。発電方式の順位には反映しません）</div>
                     <div class="needs-row"><div><span class="field-label">月の電気代（円）</span><input class="needs-input" id="monthlyBill" type="number" value="12000" min="0" max="100000"></div><div><span class="field-label">初期予算（万円）</span><input class="needs-input" id="needsBudget" type="number" value="100" min="0" max="100000"></div></div>
                     <div class="needs-row" style="margin-top:8px"><div><span class="field-label">住まい</span><select class="needs-input" id="homeType"><option value="owner">持ち家</option><option value="rent">賃貸</option><option value="condo">集合住宅</option></select></div><div><span class="field-label">屋根・敷地の利用</span><select class="needs-input" id="roofType"><option value="yes">使えそう</option><option value="unknown">分からない</option><option value="no">使えない</option></select></div></div>
                     <button class="button" onclick="runNeedsDiagnosis()">私の場合を診断する</button>
                 </div>
 
-                <div id="personalPanel" class="purpose-card">
-                    <h3>あなたの暮らしから考える</h3>
-                    <p>「どの発電が最適か」ではなく、まず何を大切にしたいかを選んでください。場所を解析すると、その目的に合う選択肢を説明します。</p>
-                    <div class="purpose-grid">
-                        <button class="purpose-btn active" onclick="setPurpose('saving', this)">電気代を抑えたい</button>
-                        <button class="purpose-btn" onclick="setPurpose('backup', this)">停電に備えたい</button>
-                        <button class="purpose-btn" onclick="setPurpose('eco', this)">環境に配慮したい</button>
-                        <button class="purpose-btn" onclick="setPurpose('know', this)">まず知りたい</button>
-                    </div>
-                </div>
 
                 <div id="educationPanel" class="education-card" style="display:none">
                     <h3>授業で試してみる</h3><p>地域を選び、条件を変えながら「発電量・需要・環境」を考える学習モードです。</p>
                     <div class="lesson-step"><span class="step-num">1</span><span>地図をクリックして地域を選びます。</span></div><div class="lesson-step"><span class="step-num">2</span><span>季節や時間帯を変え、発電量の変化を観察します。</span></div><div class="lesson-step"><span class="step-num">3</span><span>結果を見て「なぜ差が出たか」を話し合います。</span></div>
                     <div class="edu-question">観察するテーマ</div><select class="edu-select" id="educationTheme" onchange="renderEducationPrompt()"><option value="weather">天気・季節で発電はどう変わる？</option><option value="demand">使う時間と発電する時間は合う？</option><option value="tradeoff">環境・安定性・費用の違いは？</option></select><div id="educationPrompt" class="answer-box">まず季節を変えて、太陽光の発電量を比べてみましょう。</div>
                 </div>
+                <div id="simulationControls" style="display:none">
                 <div class="control-group">
                     <label>解析季節</label>
                     <div class="season-buttons">
@@ -94,6 +85,7 @@
                         <span style="font-size: 13px; font-weight: 600;">世帯</span>
                     </div>
                     <p style="font-size: 11px; color: #666; margin-top: 5px;">※1世帯あたりの標準的な消費パターンから需要を算出します</p>
+                </div>
                 </div>
 
                 <div id="result-container" class="empty-state">
@@ -809,15 +801,20 @@ async function analyze(lat, lon, customName) {
             userMode = mode;
             document.getElementById('personalModeBtn').classList.toggle('active', mode === 'personal');
             document.getElementById('educationModeBtn').classList.toggle('active', mode === 'education');
-            document.getElementById('personalPanel').style.display = mode === 'personal' ? 'block' : 'none';
+            document.getElementById('needsPanel').style.display = mode === 'personal' ? 'block' : 'none';
+            userPurpose = mode === 'education' ? 'know' : purposeFromNeedGoal();
             document.getElementById('educationPanel').style.display = mode === 'education' ? 'block' : 'none';
+            document.getElementById('simulationControls').style.display = mode === 'education' ? 'block' : 'none';
             if (currentData) displayResult();
         }
-        function setPurpose(purpose, button) {
-            userPurpose = purpose;
-            document.querySelectorAll('.purpose-btn').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
-            if (currentData) displayResult();
+        function purposeFromNeedGoal() {
+            const goal=document.querySelector('input[name="needGoal"]:checked')?.value || 'bill';
+            return {bill:'saving',blackout:'backup',eco:'eco',know:'know'}[goal] || 'saving';
+        }
+        function setPurposeFromNeedGoal() {
+            if(userMode !== 'personal') return;
+            userPurpose=purposeFromNeedGoal();
+            if(currentData) displayResult();
         }
         function renderEducationPrompt() { document.getElementById('educationPrompt').textContent = themeText[document.getElementById('educationTheme').value]; }
         function getPurposeRecommendation() {
@@ -991,6 +988,7 @@ async function analyze(lat, lon, customName) {
             return {goal,bill,budget,home,roof,verdict,color,reason,next,canInstall,limitedInstall};
         }
         function runNeedsDiagnosis(){
+            setPurposeFromNeedGoal();
             const d=needsDiagnosis();
             const goalNames={bill:'電気代',blackout:'停電対策',eco:'環境',know:'情報収集'};
             const homeNames={owner:'持ち家',rent:'賃貸',condo:'集合住宅'};
@@ -1008,12 +1006,11 @@ async function analyze(lat, lon, customName) {
         function displayResult(){
             if(typeof userMode!=='undefined' && userMode==='education') return displayEducationResult();
             if(!currentData)return;
-            const d=needsDiagnosis();
             const candidates=explainCandidates(),best=candidates[0];
             const local=currentData.local;
             const energyUse=local && Number.isFinite(local.demandTJ) ? `${local.demandTJ.toLocaleString('ja-JP')} TJ` : 'データ未照合';
             const attention=regionalAttention(best,local);
-            let html=`<div class="result-card"><div class="energy-badge" style="background-color:${currentData.res.c}">地域解析</div><div class="result-title">${currentData.name}の特徴</div><div class="result-description">先に生活上の診断を行うと、ここで地域条件とあなたの悩みを重ねて確認できます。現在は${EXPLAIN_LABELS[best.key]}が地域ポテンシャル上位です。</div><div class="mini-metrics"><div class="mini-metric"><small>地域適性上位</small><strong>${best.label}</strong></div><div class="mini-metric"><small>地域適性</small><strong>${Math.round(best.resource)}点</strong></div><div class="mini-metric"><small>地域の最終エネルギー消費</small><strong>${energyUse}</strong></div><div class="mini-metric"><small>判断の注意</small><strong>${attention.label}</strong></div></div><p class="notice">最終エネルギー消費は市区町村全体の推計値（電力・燃料・熱を含む）で、選択時刻の実測需要ではありません。${attention.detail}</p></div><div class="decision-box"><h4>地域の結果を生活に結びつける</h4><p class="notice">地域ポテンシャルが高いことと、あなたの家に導入できることは別です。屋根・敷地、費用、停電時に守りたい機器、契約条件を順番に確認してください。</p><div class="uncertainty"><strong>地域解析だけで分からないこと</strong><br>屋根の向き・影・耐荷重、実測の日射量や風速、騒音、許認可、系統接続、補助制度、将来の住み替えはこの画面では確定できません。</div></div><div class="chart-container"><div class="chart-title">地域ポテンシャルの内訳</div><canvas id="potentialChart"></canvas></div>`;
+            let html=`<div class="result-card"><div class="energy-badge" style="background-color:${currentData.res.c}">地域解析</div><div class="result-title">${currentData.name}の特徴</div><div class="result-description">選んだ目的「${PURPOSE_NAMES[userPurpose]}」で総合評価した結果です。地域適性のほか、費用や安定性などの固定評価も含みます。</div><div class="mini-metrics"><div class="mini-metric"><small>目的別の総合評価1位</small><strong>${best.label}</strong></div><div class="mini-metric"><small>地域適性</small><strong>${Math.round(best.resource)}点</strong></div><div class="mini-metric"><small>地域の最終エネルギー消費</small><strong>${energyUse}</strong></div><div class="mini-metric"><small>判断の注意</small><strong>${attention.label}</strong></div></div><p class="notice">最終エネルギー消費は市区町村全体の推計値（電力・燃料・熱を含む）で、選択時刻の実測需要ではありません。${attention.detail}</p></div><div class="decision-box"><h4>地域の結果を生活に結びつける</h4><p class="notice">地域ポテンシャルが高いことと、あなたの家に導入できることは別です。屋根・敷地、費用、停電時に守りたい機器、契約条件を順番に確認してください。</p><div class="uncertainty"><strong>地域解析だけで分からないこと</strong><br>屋根の向き・影・耐荷重、実測の日射量や風速、騒音、許認可、系統接続、補助制度、将来の住み替えはこの画面では確定できません。</div></div><div class="chart-container"><div class="chart-title">地域ポテンシャルの内訳</div><canvas id="potentialChart"></canvas></div>`;
             document.getElementById('result-container').innerHTML=html;
             const ctx=document.getElementById('potentialChart'); if(ctx)new Chart(ctx.getContext('2d'),{type:'radar',data:{labels:['太陽光','風力','地熱','水力','バイオマス'],datasets:[{label:'地域適性',data:[currentData.p.solar,currentData.p.wind,currentData.p.geo,currentData.p.hydro,currentData.p.bio],backgroundColor:'rgba(0,102,204,.18)',borderColor:'#0066cc',borderWidth:2}]},options:{scales:{r:{min:0,max:100}},plugins:{legend:{display:false}},maintainAspectRatio:false}});
         }
@@ -1050,4 +1047,5 @@ const _originalAnalyze=window.analyze;window.analyze=async function(lat,lon,cust
 
 </body>
 </html>
+
 
