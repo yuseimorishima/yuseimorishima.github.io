@@ -43,7 +43,7 @@
 
                 <div class="needs-panel" id="needsPanel">
                     <h3>何を重視しますか？</h3>
-                    <p>ここで選んだ目的に合わせて、次に調べる項目を案内します。方式ごとの地域適性データがないため、発電方式の1位は判定しません。</p>
+                    <p>ここで選んだ目的は助言にだけ使います。地域候補の順位はJEDの方式別データから計算します。</p>
                     <div class="needs-question">確認したい目的</div>
                     <div class="needs-options" onchange="setPurposeFromNeedGoal()"><div class="needs-option"><input type="radio" name="needGoal" id="needBill" value="bill" checked><label for="needBill">電気代を抑えたい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needBlackout" value="blackout"><label for="needBlackout">停電が不安</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needEco" value="eco"><label for="needEco">環境に配慮したい</label></div><div class="needs-option"><input type="radio" name="needGoal" id="needKnow" value="know"><label for="needKnow">まず情報収集したい</label></div></div>
                     <div class="needs-question">住まい・予算（生活診断用。発電方式の順位には反映しません）</div>
@@ -1052,6 +1052,9 @@ function renderJEDResult(){
 }
 function displayResult(){renderJEDResult();}
 function displayEducationResult(){renderJEDResult();}
+// The old aggregate potential panel mixed source years and all technologies.
+function addLocalEvidencePanel(){}
+function renderLocalEvidence(){}
 </script>
 <style>.jed-table{width:100%;border-collapse:collapse;margin:12px 0}.jed-table th,.jed-table td{padding:8px;border-bottom:1px solid #dce3ea;text-align:left}.jed-table td:last-child{font-weight:700}</style>
 </body>
